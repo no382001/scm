@@ -442,6 +442,8 @@ void gc() {
   sp = ord(env);
 }
 
+
+#ifndef FUNC_TEST
 /* Lisp initialization and REPL */
 int main() {
   I i;
@@ -458,3 +460,5 @@ int main() {
     gc();
   }
 }
+
+#endif
