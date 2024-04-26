@@ -53,6 +53,14 @@ jmp_buf jb;
 
 L err(int i) { longjmp(jb,i); }
 
+typedef enum ERROR_CODE {
+  OUT_OF_MEMORY,
+  CAR_NOT_A_PAIR,
+  CDR_NOT_A_PAIR,
+  ASSOC_VALUE_N_FOUND,
+  APPLY_F_IS_N_CLOS_OR_PRIM,
+};
+
 /* NaN-boxing specific functions:
    box(t,i): returns a new NaN-boxed double with tag t and ordinal i
    ord(x):   returns the ordinal of the NaN-boxed double x
@@ -94,18 +102,18 @@ L cons(L x, L y) {
   cell[--sp] = x;                               /* push the car value x */
   cell[--sp] = y;                               /* push the cdr value y */
   if (hp > sp<<3)                               /* abort when out of memory */
-    abort();
+    err(OUT_OF_MEMORY);
   return box(CONS, sp);
 }
 
 /* return the car of a pair or ERR if not a pair */
 L car(L p) {
-  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)+1] : err(1);
+  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)+1] : err(CAR_NOT_A_PAIR);
 }
 
 /* return the cdr of a pair or ERR if not a pair */
 L cdr(L p) {
-  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)] : err(1);
+  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)] : err(CDR_NOT_A_PAIR);
 }
 
 /* construct a pair to add to environment e, returns the list ((v . x) . e) */
@@ -122,7 +130,7 @@ L closure(L v, L x, L e) {
 L assoc(L v, L e) {
   while (T(e) == CONS && !equ(v, car(car(e))))
     e = cdr(e);
-  return T(e) == CONS ? cdr(car(e)) : err(2);
+  return T(e) == CONS ? cdr(car(e)) : err(ASSOC_VALUE_N_FOUND);
 }
 
 /* _not(x) is nonzero if x is the Lisp () empty list */
@@ -341,7 +349,7 @@ L reduce(L f, L t, L e) {
 L apply(L f, L t, L e) {
   return T(f) == PRIM ? prim[ord(f)].f(t, e) :
          T(f) == CLOS ? reduce(f, t, e) :
-         err(3);
+         err(APPLY_F_IS_N_CLOS_OR_PRIM);
 }
 
 /* evaluate x and return its value in environment e */

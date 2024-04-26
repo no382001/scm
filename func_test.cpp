@@ -2,6 +2,17 @@
 #include <thread>
 #include <fstream>
 
+#define EXPECT_THROW_VALUE(f,val)\
+try {\
+    f;\
+    FAIL() << "Expected exception";\
+} catch (decltype(val) e) {\
+    EXPECT_EQ(e, val);\
+} catch (...) {\
+    FAIL() << "Expected int exception, but caught different type";\
+}
+
+
 #define FUNC_TEST
 extern "C" {
     #include "tinylisp.c"
@@ -121,11 +132,11 @@ TEST_F(LispTest, LetBinding) {
 // negative tests
 
 TEST_F(LispTest, UndefinedVariable) {
-    EXPECT_THROW(eval_string("(+ a 1)\n"), int);
+    EXPECT_THROW_VALUE(eval_string("(+ a 1)\n"), ASSOC_VALUE_N_FOUND);
 }
 
 TEST_F(LispTest, TypeMismatch) {
-    EXPECT_THROW(eval_string("(+ 'a 1)\n"), int);
+    EXPECT_THROW_VALUE(eval_string("(+ 'a 1)\n"), 1);
 }
 /** /
 TEST_F(LispTest, MemoryOverflow) {
