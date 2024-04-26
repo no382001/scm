@@ -45,6 +45,8 @@ L cell[N];
 /* Lisp constant expressions () (nil), #t, ERR, and the global environment env */
 L nil, tru, err, env;
 
+bool trace = false;
+
 /* NaN-boxing specific functions:
    box(t,i): returns a new NaN-boxed double with tag t and ordinal i
    ord(x):   returns the ordinal of the NaN-boxed double x
@@ -320,11 +322,24 @@ L apply(L f, L t, L e) {
 }
 
 /* evaluate x and return its value in environment e */
-L eval(L x, L e) {
+L step(L x, L e) {
   return T(x) == ATOM ? assoc(x, e) :
          T(x) == CONS ? apply(eval(car(x), e), cdr(x), e) :
          x;
 }
+
+void print(L x);
+
+/* wrapper for eval to trace steps */
+L eval(L x, L e) {
+  L y = step(x,e);
+  if (trace){
+    printf("%u: ",sp); print(x); printf(" -> "); print(y); putchar('\n');
+  }
+  //while (getchar() >= ' ') continue;
+  return y;
+}
+
 
 /* tokenization buffer and the next character that we are looking at */
 char buf[40], see = ' ';
