@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
 
 /* we only need two types to implement a Lisp interpreter:
         I    unsigned integer (either 16 bit, 32 bit or 64 bit unsigned)
@@ -43,9 +44,14 @@ I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
 L cell[N];
 
 /* Lisp constant expressions () (nil), #t, ERR, and the global environment env */
-L nil, tru, err, env;
+L nil, tru, /*err,*/ env;
 
-bool trace = false;
+/* used in eval */
+int trace = 0;
+
+jmp_buf jb;
+
+L err(int i) { longjmp(jb,i); }
 
 /* NaN-boxing specific functions:
    box(t,i): returns a new NaN-boxed double with tag t and ordinal i
@@ -94,12 +100,12 @@ L cons(L x, L y) {
 
 /* return the car of a pair or ERR if not a pair */
 L car(L p) {
-  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)+1] : err;
+  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)+1] : err(1);
 }
 
 /* return the cdr of a pair or ERR if not a pair */
 L cdr(L p) {
-  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)] : err;
+  return (T(p) & ~(CONS^CLOS)) == CONS ? cell[ord(p)] : err(1);
 }
 
 /* construct a pair to add to environment e, returns the list ((v . x) . e) */
@@ -116,7 +122,7 @@ L closure(L v, L x, L e) {
 L assoc(L v, L e) {
   while (T(e) == CONS && !equ(v, car(car(e))))
     e = cdr(e);
-  return T(e) == CONS ? cdr(car(e)) : err;
+  return T(e) == CONS ? cdr(car(e)) : err(2);
 }
 
 /* _not(x) is nonzero if x is the Lisp () empty list */
@@ -275,6 +281,21 @@ L f_define(L t, L e) {
   return car(t);
 }
 
+L f_catch(L t, L e){
+  L x; int i;
+  jmp_buf savedjb;
+  memcpy(savedjb,jb,sizeof(jb));
+  i = setjmp(jb);
+  x = i ? cons(atom("ERR"),i) : eval(car(t),e);
+  memcpy(jb,savedjb,sizeof(jb));
+  return x;
+}
+
+L f_throw(L t, L e){
+  longjmp(jb,(int)num(car(t)));
+}
+
+
 /* table of Lisp primitives, each has a name s and function pointer f */
 struct {
   const char *s;
@@ -300,6 +321,8 @@ struct {
   {"let*",   f_leta},
   {"lambda", f_lambda},
   {"define", f_define},
+  {"catch",  f_catch},
+  {"throw",  f_throw},
   {0}};
 
 /* create environment by extending e with variables v bound to values t */
@@ -318,7 +341,7 @@ L reduce(L f, L t, L e) {
 L apply(L f, L t, L e) {
   return T(f) == PRIM ? prim[ord(f)].f(t, e) :
          T(f) == CLOS ? reduce(f, t, e) :
-         err;
+         err(3);
 }
 
 /* evaluate x and return its value in environment e */
@@ -464,15 +487,17 @@ int main() {
   I i;
   printf("tinylisp");
   nil = box(NIL, 0);
-  err = atom("ERR");
+  // err = atom("ERR");
   tru = atom("#t");
   env = pair(tru, tru, nil);
   for (i = 0; prim[i].s; ++i)
     env = pair(atom(prim[i].s), box(PRIM, i), env);
+  
+  if ((i = setjmp(jb)) != 0) printf("ERR %d",i);
   while (1) {
+    gc();
     printf("\n%u>", sp-hp/8);
     print(eval(Read(), env));
-    gc();
   }
 }
 

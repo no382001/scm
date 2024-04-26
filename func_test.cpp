@@ -3,16 +3,20 @@
 #include <fstream>
 
 #define FUNC_TEST
-#include "tinylisp.cpp"
+extern "C" {
+    #include "tinylisp.c"
+};
 
 int orig_stdin;
 int input_pipe[2];
+I i; // for setjmp
+
 struct LispTest : public ::testing::Test {
 
     void SetUp() override {
-
         nil = box(NIL, 0);
-        err = atom("ERR");
+        //err = atom("ERR");
+
         tru = atom("#t");
         env = pair(tru, tru, nil);
         for (int i = 0; prim[i].s; ++i) {
@@ -43,6 +47,8 @@ struct LispTest : public ::testing::Test {
     }
 
     L eval_string(const char* input) {
+        if ((i = setjmp(jb)) != 0) throw i;
+
         write(input_pipe[1], input, strlen(input));
         
         return eval(Read(), env);
@@ -115,11 +121,11 @@ TEST_F(LispTest, LetBinding) {
 // negative tests
 
 TEST_F(LispTest, UndefinedVariable) {
-    EXPECT_EQ(eval_string("(+ a 1)\n"), err);
+    EXPECT_THROW(eval_string("(+ a 1)\n"), int);
 }
 
 TEST_F(LispTest, TypeMismatch) {
-    EXPECT_EQ(eval_string("(+ 'a 1)\n"), err);
+    EXPECT_THROW(eval_string("(+ 'a 1)\n"), int);
 }
 /** /
 TEST_F(LispTest, MemoryOverflow) {
