@@ -166,6 +166,89 @@ TEST_F(LispTest, FileReadOperation) {
 }
 */
 
+TEST_F(LispTest, Eval) {
+    EXPECT_EQ(eval_string("(eval 42)\n"), 42);
+}
+
+TEST_F(LispTest, Quote) {
+    EXPECT_EQ(eval_string("(quote (1 2 3))\n"), cons(cons(1, cons(2, cons(3, nil))), nil));
+}
+
+TEST_F(LispTest, Cons) {
+    EXPECT_EQ(eval_string("(cons 1 2)\n"), cons(1, 2));
+}
+
+TEST_F(LispTest, Car) {
+    EXPECT_EQ(eval_string("(car (cons 1 2))\n"), 1);
+}
+
+TEST_F(LispTest, Cdr) {
+    EXPECT_EQ(eval_string("(cdr (cons 1 2))\n"), 2);
+}
+
+TEST_F(LispTest, Add) {
+    EXPECT_EQ(eval_string("(+ 1 2 3 4)\n"), 10);
+}
+
+TEST_F(LispTest, Subtract) {
+    EXPECT_EQ(eval_string("(- 10 2 3)\n"), 5);
+}
+
+TEST_F(LispTest, Multiply) {
+    EXPECT_EQ(eval_string("(* 2 3 4)\n"), 24);
+}
+
+TEST_F(LispTest, Divide) {
+    EXPECT_EQ(eval_string("(/ 24 3 2)\n"), 4);
+}
+
+TEST_F(LispTest, Integer) {
+    EXPECT_EQ(eval_string("(int 3.75)\n"), 3);
+}
+
+TEST_F(LispTest, LessThan) {
+    EXPECT_EQ(eval_string("(< 3 4)\n"), tru);
+}
+
+TEST_F(LispTest, Equal) {
+    EXPECT_EQ(eval_string("(eq? 3 3)\n"), tru);
+}
+
+TEST_F(LispTest, Or) {
+    EXPECT_EQ(eval_string("(or () #t)\n"), tru);
+}
+
+TEST_F(LispTest, And) {
+    EXPECT_EQ(eval_string("(and #t #t)\n"), tru);
+}
+
+TEST_F(LispTest, Not) {
+    EXPECT_EQ(eval_string("(not ())\n"), tru);
+}
+
+TEST_F(LispTest, Cond) {
+    EXPECT_EQ(eval_string("(cond ((eq? 1 2) 3) ((eq? 2 2) 4))\n"), 4);
+}
+
+TEST_F(LispTest, If) {
+    EXPECT_EQ(eval_string("(if (eq? 1 1) 42 100)\n"), 42);
+}
+
+TEST_F(LispTest, LetStar) {
+    EXPECT_EQ(eval_string("(let* ((a 1) (b 2)) (+ a b))\n"), 3);
+}
+
+TEST_F(LispTest, Lambda) {
+    eval_string("(define square (lambda (x) (* x x)))\n");
+    EXPECT_EQ(eval_string("(square 3)\n"), 9);
+}
+
+TEST_F(LispTest, Define) {
+    eval_string("(define x 42)\n");
+    EXPECT_EQ(eval_string("x\n"), 42);
+}
+
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
