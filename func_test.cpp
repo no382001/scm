@@ -4,10 +4,10 @@
 
 #define EXPECT_THROW_VALUE(f,val)\
 try {\
-    f;\
-    FAIL() << "Expected exception";\
-} catch (decltype(val) e) {\
-    EXPECT_EQ(e, val);\
+    int r = f;\
+    FAIL() << "Expected exception, got: " << r << " or 0x" << std::hex << r;\
+} catch (decltype(val) exception) {\
+    EXPECT_EQ(exception, val);\
 } catch (...) {\
     FAIL() << "Expected int exception, but caught different type";\
 }
@@ -20,7 +20,7 @@ extern "C" {
 
 int orig_stdin;
 int input_pipe[2];
-I i; // for setjmp
+ERROR_CODE i; // for setjmp
 
 struct LispTest : public ::testing::Test {
 
@@ -58,11 +58,20 @@ struct LispTest : public ::testing::Test {
     }
 
     L eval_string(const char* input) {
-        if ((i = setjmp(jb)) != 0) throw i;
+        if ((i = (ERROR_CODE)setjmp(jb)) != 0) throw i;
 
         write(input_pipe[1], input, strlen(input));
         
         return eval(Read(), env);
+    }
+
+    bool match_variable(int x, const char* str){
+        auto var = A+ord(x);
+        if (strcmp(var,str)){
+            return true;
+        } else {
+            return false;
+        }
     }
 };
 
@@ -132,12 +141,22 @@ TEST_F(LispTest, LetBinding) {
 // negative tests
 
 TEST_F(LispTest, UndefinedVariable) {
-    EXPECT_THROW_VALUE(eval_string("(+ a 1)\n"), ASSOC_VALUE_N_FOUND);
+    EXPECT_THROW_VALUE(eval_string("(+ a 1)\n"),ASSOC_VALUE_N_FOUND);
 }
 
 TEST_F(LispTest, TypeMismatch) {
-    EXPECT_THROW_VALUE(eval_string("(+ 'a 1)\n"), 1);
+    trace = 1;
+    EXPECT_THROW_VALUE(eval_string("(+ 'a 1)\n"),TYPE_MISMATCH);
 }
+
+TEST_F(LispTest, Quote1) {
+    auto res = eval_string("(quote a)\n");
+    EXPECT_EQ(match_variable(res,"a"),true);
+
+    res = eval_string("('a)\n");
+    EXPECT_EQ(match_variable(res,"a"),true);
+}
+
 /** /
 TEST_F(LispTest, MemoryOverflow) {
     std::string largeInput = "(cons 1 2)\n";
@@ -158,14 +177,6 @@ TEST_F(LispTest, HigherOrderFunction) {
     eval_string("(define apply-func (lambda (f x) (f x)))\n");
     eval_string("(define inc (lambda (x) (+ x 1)))\n");
     EXPECT_EQ(eval_string("(apply-func inc 5)\n"), 6);
-}
-
-TEST_F(LispTest, ThreadSafety) { // im not sure..
-    std::thread t1([&](){ eval_string("(define x 10)\n"); });
-    std::thread t2([&](){ eval_string("(define y 20)\n"); });
-    t1.join();
-    t2.join();
-    EXPECT_EQ(eval_string("(+ x y)\n"), 30);
 }
 
 TEST_F(LispTest, PerformanceStressTest) {

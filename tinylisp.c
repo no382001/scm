@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <math.h>
 
 /* we only need two types to implement a Lisp interpreter:
         I    unsigned integer (either 16 bit, 32 bit or 64 bit unsigned)
@@ -37,7 +38,7 @@
    safety invariant: hp <= sp<<3 */
 I hp = 0, sp = N;
 
-/* atom, primitive, cons, closure and nil tags for NaN boxing */
+/* atom, primitive, cons, closure, nil and uninit tags for NaN boxing */
 I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
 
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
@@ -59,6 +60,7 @@ typedef enum ERROR_CODE {
   CDR_NOT_A_PAIR,
   ASSOC_VALUE_N_FOUND,
   APPLY_F_IS_N_CLOS_OR_PRIM,
+  TYPE_MISMATCH,
 };
 
 /* NaN-boxing specific functions:
@@ -90,9 +92,9 @@ L atom(const char *s) {
   while (i < hp && strcmp(A+i, s))              /* search for a matching atom name on the heap */
     i += strlen(A+i)+1;
   if (i == hp) {                                /* if not found */
-    hp += strlen(strcpy(A+i, s))+1;             /*   allocate and add a new atom name to the heap */
-    if (hp > sp<<3)                             /* abort when out of memory */
-      abort();
+    hp += strlen(strcpy(A+i, s))+1;             /* allocate and add a new atom name to the heap */
+    if (hp > sp<<3)                             /* err when out of memory */
+      err(OUT_OF_MEMORY);
   }
   return box(ATOM, i);
 }
@@ -128,8 +130,9 @@ L closure(L v, L x, L e) {
 
 /* look up a symbol in an environment, return its value or ERR if not found */
 L assoc(L v, L e) {
-  while (T(e) == CONS && !equ(v, car(car(e))))
+  while (T(e) == CONS && !equ(v, car(car(e)))){
     e = cdr(e);
+  }
   return T(e) == CONS ? cdr(car(e)) : err(ASSOC_VALUE_N_FOUND);
 }
 
@@ -143,10 +146,18 @@ I let(L x) {
   return T(x) != NIL && !_not(cdr(x));
 }
 
+void print(L a);
 /* return a new list of evaluated Lisp expressions t in environment e */
 L eval(L, L);
 L evlis(L t, L e) {
-  return T(t) == CONS ? cons(eval(car(t), e), evlis(cdr(t), e)) : T(t) == ATOM ? assoc(t,e) : nil;
+  if (T(t) == CONS){
+    return cons(eval(car(t), e), evlis(cdr(t), e));
+  } else if (T(t) == ATOM){
+      L a = assoc(t,e);
+      return a;
+  } else {
+    return nil;
+  }
 }
 
 /* Lisp primitives:
@@ -197,21 +208,45 @@ L f_cdr(L t, L e) {
   return cdr(car(evlis(t, e)));
 }
 
+/* checks for nan values in case something falls down here in an unevaluated context */
 L f_add(L t, L e) {
   L n;
   t = evlis(t, e);
   n = car(t);
-  while (!_not(t = cdr(t)))
-    n += car(t);
+
+  if (isnan(n)){
+    err(TYPE_MISMATCH);
+  }
+
+  while (!_not(t = cdr(t))){
+    L c = car(t);
+    if (isnan(c)){
+      err(TYPE_MISMATCH);
+    }
+
+    n += c;
+  }
   return num(n);
 }
 
+/* checks for nan values in case something falls down here in an unevaluated context */
 L f_sub(L t, L e) {
   L n;
   t = evlis(t, e);
   n = car(t);
-  while (!_not(t = cdr(t)))
-    n -= car(t);
+
+  if (isnan(n)){
+    err(TYPE_MISMATCH);
+  }
+  
+  while (!_not(t = cdr(t))){
+    L c = car(t);
+    if (isnan(c)){
+      err(TYPE_MISMATCH);
+    }
+
+    n -= c;
+  }
   return num(n);
 }
 
