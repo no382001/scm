@@ -309,11 +309,7 @@ TEST_F(LispTest, If) {
 }
 
 TEST_F(LispTest, LetStar) {
-    try {
-        EXPECT_EQ(eval_string("(let* ((a 1) (b 2)) (+ a b))\n"), 3);
-    } catch (ERROR_CODE e){
-        FAIL() << e;
-    }
+    EXPECT_EQ(eval_string("(let* (a 1) (b 2) (+ a b))\n"), 3);
 }
 
 TEST_F(LispTest, Lambda) {
