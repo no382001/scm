@@ -45,7 +45,7 @@ I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
 L cell[N];
 
 /* Lisp constant expressions () (nil), #t, ERR, and the global environment env */
-L nil, tru, /*err,*/ env;
+L nil, tru, fal, env;
 
 /* used in eval */
 int trace = 0;
@@ -530,9 +530,10 @@ int main() {
   I i;
   printf("tinylisp");
   nil = box(NIL, 0);
-  // err = atom("ERR");
   tru = atom("#t");
   env = pair(tru, tru, nil);
+  fal = atom("#f");
+  env = pair(fal,fal, env);
   for (i = 0; prim[i].s; ++i)
     env = pair(atom(prim[i].s), box(PRIM, i), env);
   
