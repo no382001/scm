@@ -50,6 +50,7 @@ struct LispTest : public ::testing::Test {
     }
 
     void TearDown() override {
+        c_char_index = 0;
         hp = 0;
         sp = N;
 

@@ -409,11 +409,13 @@ L eval(L x, L e) {
 
 /* tokenization buffer and the next character that we are looking at */
 char buf[40], see = ' ';
+int c_char_index = 0;
 
 /* advance to the next character */
 void look() {
   int c = getchar();
   see = c;
+  c_char_index++;
   if (c == EOF)
     exit(0);
 }
@@ -537,8 +539,16 @@ int main() {
   for (i = 0; prim[i].s; ++i)
     env = pair(atom(prim[i].s), box(PRIM, i), env);
   
-  if ((i = setjmp(jb)) != 0) printf("ERR %d",i);
+  if ((i = setjmp(jb)) != 0){
+    for(int i = 0; i < c_char_index; i++){
+      printf(" ");
+    }
+    printf("^");
+    printf("\n--> ERR %d",i);
+  }
+
   while (1) {
+    c_char_index = 0;
     gc();
     printf("\n%u>", sp-hp/8);
     print(eval(Read(), env));
