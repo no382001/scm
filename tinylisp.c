@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
 
 /* we only need two types to implement a Lisp interpreter:
         I    unsigned integer (either 16 bit, 32 bit or 64 bit unsigned)
@@ -69,10 +70,12 @@ I hp = 0, sp = N;
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
 I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
 
+/* errors */
 typedef enum {
   NONE = 0,
   OUT_OF_MEMORY,
   DIVIDE_ZERO,
+  PRIM_PROC_NOT_FOUND,
   CAR_NOT_A_PAIR,
   CDR_NOT_A_PAIR,
   ASSOC_VALUE_N_FOUND,
@@ -80,12 +83,17 @@ typedef enum {
   TYPE_MISMATCH,
 } ERROR_T;
 
+#include "error_map.h"
+
 typedef struct {
   ERROR_T type;
   L box;
 } ERROR_STATE;
 
-static ERROR_STATE g_err_state = { NONE, 0 }; 
+/* global error state 'eval' checks if its none and jumps to main, overridden in multiple layers */
+static ERROR_STATE g_err_state = { NONE, 0 };
+
+jmp_buf jb;
 
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
 L cell[N];
@@ -129,10 +137,26 @@ L cons(L x, L y) {
 }
 
 /* return the car of a pair or ERR if not a pair */
-L car(L p) { return (T(p) & ~(CONS ^ CLOS)) == CONS ? cell[ord(p) + 1] : err; }
+L car(L p) { 
+  if ((T(p) & ~(CONS ^ CLOS)) == CONS ){
+    return cell[ord(p) + 1];
+  } else {
+    g_err_state.type = CAR_NOT_A_PAIR;
+    g_err_state.box = p;
+    return err;
+  }
+}
 
 /* return the cdr of a pair or ERR if not a pair */
-L cdr(L p) { return (T(p) & ~(CONS ^ CLOS)) == CONS ? cell[ord(p)] : err; }
+L cdr(L p) {
+  if ((T(p) & ~(CONS ^ CLOS)) == CONS ){
+    return cell[ord(p)];
+  } else {
+    g_err_state.type = CDR_NOT_A_PAIR;
+    g_err_state.box = p;
+    return err;
+  }
+}
 
 /* construct a pair to add to environment e, returns the list ((v . x) . e) */
 L pair(L v, L x, L e) { return cons(cons(v, x), e); }
@@ -300,56 +324,80 @@ void print(L x);
 
 /* TC opt eval */
 L eval(L x, L e) {
-  if (g_err_state.type){
-    printf("%u: ",sp); print(x); printf(" -> "); print(g_err_state.box); putchar('\n');
-  }
 
   L f, v, d;
   while (1) {
-    if (T(x) == ATOM){
-      L t = assoc(x, e);
-      if (equ(t,err)){
+    if (T(x) == ATOM) {
+      L t = assoc(x, e); /* attempt to find the atom in env */
+      if (equ(t,err)) {
         g_err_state.type = ASSOC_VALUE_N_FOUND;
         g_err_state.box = x;
       }
-      return t;
+      return t; /* return assoc val or err */
     }
-    if (T(x) != CONS){
+    if (T(x) != CONS) { /* could be a prim, return directly */
       return x;
     }
-    f = eval(car(x), e);
-    x = cdr(x);
+    L proc = x; /* save the proc for error message */
+    f = eval(car(x), e); /* get proc sig */
+    
+    if (equ(f,err)) {
+      g_err_state.type = PRIM_PROC_NOT_FOUND;
+      g_err_state.box = car(proc);
+    }
+    
+    x = cdr(x); /* get proc body */
     if (T(f) == PRIM) {
-      x = prim[ord(f)].f(x, &e);
-      if (prim[ord(f)].t)
+      x = prim[ord(f)].f(x, &e); /* exec prim func */
+      
+      if (g_err_state.type) {
+        printf("%u: ",sp); printf("|%s| ",ERROR_T_to_string[g_err_state.type]); print(g_err_state.box); printf(" @ "); print(proc);  putchar('\n');
+        longjmp(jb,0);
+      }
+
+      if (prim[ord(f)].t) /* do tc if its on */
         continue;
       return x;
     }
-    if (T(f) != CLOS){
+    
+    if (T(f) != CLOS) {
       return err;
     }
-    v = car(car(f));
-    d = cdr(f);
-    if (T(d) == NIL){
+
+    v = car(car(f)); /* list of params from clos */
+    d = cdr(f); /* clos env */
+    if (T(d) == NIL) { /* if clos env empty use the glob env */
       d = env;
     }
-    for (; T(v) == CONS && T(x) == CONS; v = cdr(v), x = cdr(x)){
+
+    /* map each arg to its corr param */
+    for (; T(v) == CONS && T(x) == CONS; v = cdr(v), x = cdr(x)) {
       d = pair(car(v), eval(car(x), e), d);
     }
-    if (T(v) == CONS){
+
+    /* if there are more args to proc, continue eval */
+    if (T(v) == CONS) {
       x = eval(x, e);
     }
-    for (; T(v) == CONS; v = cdr(v), x = cdr(x)){
+
+    /* pair remaining parameters with their arguments */
+    for (; T(v) == CONS; v = cdr(v), x = cdr(x)) {
       d = pair(car(v), car(x), d);
     }
-    if (T(x) == CONS){
-      x = evlis(x, e);
-    } else if (T(x) != NIL){
+
+    /* eval body of clos in the new env */
+    if (T(x) == CONS) {
+      x = evlis(x, e);    
+    } else if (T(x) != NIL) {
       x = eval(x, e);
     }
-    if (T(v) != NIL){
+
+    /* param list not empty? */
+    if (T(v) != NIL) {
       d = pair(v, x, d);
     }
+
+    /* next expr */
     x = cdr(car(f));
     e = d;
   }
@@ -445,16 +493,21 @@ void gc() { sp = ord(env); }
 
 #ifndef FUNC_TEST
 
-int main()
-{
+int main() {
+
   int i;
   printf("tinylisp");
   nil = box(NIL, 0);
   err = atom("ERR");
   tru = atom("#t");
   env = pair(tru, tru, nil);
-  for (i = 0; prim[i].s; ++i)
+  for (i = 0; prim[i].s; ++i){
     env = pair(atom(prim[i].s), box(PRIM, i), env);
+  }
+  
+  setjmp(jb);
+  g_err_state.type = NONE;
+
   while (1)
   {
     printf("\n%u>", sp - hp / 8);

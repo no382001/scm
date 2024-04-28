@@ -202,6 +202,8 @@ TEST_F(LispTest, RecursiveFunction) {
     EXPECT_EQ(eval_string("(fact 5)\n"), 120);
 }
 
+/* (define fact (lambda (n) (if (eq? n 1) 1 (* n (a (- n 1)))))) */
+
 TEST_F(LispTest, HigherOrderFunction) {
     eval_string("(define apply-func (lambda (f x) (f x)))\n");
     eval_string("(define inc (lambda (x) (+ x 1)))\n");
