@@ -9,11 +9,12 @@ extern "C" {
 
 int orig_stdin;
 int input_pipe[2];
-//ERROR_CODE i; // for setjmp
 
 struct LispTest : public ::testing::Test {
 
     void SetUp() override {
+        g_err_state.type = NONE;
+
         nil = box(NIL, 0);
 
         tru = atom("#t");
@@ -51,7 +52,7 @@ struct LispTest : public ::testing::Test {
     }
 
     L eval_string(const char* input) {
-        //if ((i = (ERROR_CODE)setjmp(jb)) != 0) throw i;
+        if(setjmp(jb) == 1) return 1;
 
         write(input_pipe[1], input, strlen(input));
         
@@ -177,7 +178,8 @@ TEST_F(LispTest, LetBinding) {
 // negative tests
 
 TEST_F(LispTest, UndefinedVariable) {
-    EXPECT_EQ(eval_string("(+ a 1)\n"),err);
+    EXPECT_EQ(eval_string("(+ a 1)\n"),1);
+    EXPECT_EQ(g_err_state.type,ASSOC_VALUE_N_FOUND);
 }
 
 TEST_F(LispTest, TypeMismatch) {

@@ -79,6 +79,7 @@ typedef enum {
   CAR_NOT_A_PAIR,
   CDR_NOT_A_PAIR,
   ASSOC_VALUE_N_FOUND,
+  EVAL_F_IS_NOT_A_FUNC,
   APPLY_F_IS_N_CLOS_OR_PRIM,
   TYPE_MISMATCH,
 } ERROR_T;
@@ -166,9 +167,16 @@ L closure(L v, L x, L e) { return box(CLOS, ord(pair(v, x, equ(e, env) ? nil : e
 
 /* look up a symbol in an environment, return its value or ERR if not found */
 L assoc(L v, L e) {
-  while (T(e) == CONS && !equ(v, car(car(e))))
+  while (T(e) == CONS && !equ(v, car(car(e)))){
     e = cdr(e);
-  return T(e) == CONS ? cdr(car(e)) : err;
+  }
+  if (T(e) == CONS){
+    return cdr(car(e));
+  } else {
+    g_err_state.type = ASSOC_VALUE_N_FOUND;
+    g_err_state.box = v;
+    return err;
+  }
 }
 
 /* _not(x) is nonzero if x is the Lisp () empty list */
@@ -243,11 +251,18 @@ L f_mul(L t, L *e)
     n *= car(t);
   return num(n);
 }
-L f_div(L t, L *e)
-{
+L f_div(L t, L *e) {
   L n = car(t = evlis(t, *e));
-  while (!_not(t = cdr(t)))
-    n /= car(t);
+  while (!_not(t = cdr(t))){
+    L x = car(t);
+    if (x == 0){
+      g_err_state.type = DIVIDE_ZERO;
+      g_err_state.box = t;
+      return err;
+    }
+    n /= x;
+  }
+
   return num(n);
 }
 L f_int(L t, L *e)
@@ -328,12 +343,7 @@ L eval(L x, L e) {
   L f, v, d;
   while (1) {
     if (T(x) == ATOM) {
-      L t = assoc(x, e); /* attempt to find the atom in env */
-      if (equ(t,err)) {
-        g_err_state.type = ASSOC_VALUE_N_FOUND;
-        g_err_state.box = x;
-      }
-      return t; /* return assoc val or err */
+      return assoc(x, e);
     }
     if (T(x) != CONS) { /* could be a prim, return directly */
       return x;
@@ -344,6 +354,7 @@ L eval(L x, L e) {
     if (equ(f,err)) {
       g_err_state.type = PRIM_PROC_NOT_FOUND;
       g_err_state.box = car(proc);
+      return err;
     }
     
     x = cdr(x); /* get proc body */
@@ -352,7 +363,7 @@ L eval(L x, L e) {
       
       if (g_err_state.type) {
         printf("%u: ",sp); printf("|%s| ",ERROR_T_to_string[g_err_state.type]); print(g_err_state.box); printf(" @ "); print(proc);  putchar('\n');
-        longjmp(jb,0);
+        longjmp(jb,1);
       }
 
       if (prim[ord(f)].t) /* do tc if its on */
@@ -496,7 +507,6 @@ void gc() { sp = ord(env); }
 int main() {
 
   int i;
-  printf("tinylisp");
   nil = box(NIL, 0);
   err = atom("ERR");
   tru = atom("#t");
@@ -508,11 +518,10 @@ int main() {
   setjmp(jb);
   g_err_state.type = NONE;
 
-  while (1)
-  {
+  while (1) {
+    gc();
     printf("\n%u>", sp - hp / 8);
     print(eval(Read(), env));
-    gc();
   }
 }
 
