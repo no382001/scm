@@ -19,11 +19,10 @@ struct LispTest : public ::testing::Test {
 
         nil = box(NIL, 0);
 
+        err = atom("ERR");
+
         tru = atom("#t");
         env = pair(tru, tru, nil);
-
-        //fal = atom("#f");
-        //env = pair(fal, fal, env);
 
         for (int i = 0; prim[i].s; ++i) {
             env = pair(atom(prim[i].s), box(PRIM, i), env);
@@ -54,7 +53,9 @@ struct LispTest : public ::testing::Test {
     }
 
     L eval_string(const char* input) {
-        if(setjmp(jb) == 1) return 1;
+        if(setjmp(jb) == 1){
+            return 1;
+        }
 
         write(input_pipe[1], input, strlen(input));
         
@@ -110,16 +111,6 @@ struct LispTest : public ::testing::Test {
         }
     }
 };
-
-/*
-(define fib
-  (lambda (n)
-    (if (< n 3)
-        1
-        (+ (fib (- n 1)) (fib (- n 2))))))
-
-
-*/
 // positive tests
 
 TEST_F(LispTest, AddSimple) {
@@ -211,7 +202,7 @@ TEST_F(LispTest, UndefinedVariable) {
     EXPECT_EQ(g_err_state.type,ASSOC_VALUE_N_FOUND);
 }
 
-TEST_F(LispTest, TypeMismatch) {
+TEST_F(LispTest, TypeMismatch) { // not implemented
     EXPECT_EQ(eval_string("(+ 'a 1)\n"),err);
     EXPECT_EQ(eval_string("(+ (quote a) 1)\n"),err);
 }
@@ -221,7 +212,7 @@ TEST_F(LispTest, Quote1) {
     EXPECT_EQ(match_variable(res,"a"),true);
     EXPECT_EQ(g_err_state.type,NONE);
 
-    res = eval_string("('b)\n");
+    res = eval_string("'b\n");
     EXPECT_EQ(match_variable(res,"b"),true);
     EXPECT_EQ(g_err_state.type,NONE);
 }
@@ -237,8 +228,8 @@ TEST_F(LispTest, RecursiveFunction) {
 }
 
 TEST_F(LispTest, DefineWoLambda) {
-    EXPECT_EQ(eval_string("(define (fib n) (if (< n 3) 1 (+ (fib (- n 1)) (fib (- n 2)))))\n"),1);
-    EXPECT_EQ(g_err_state.type,FUNCTION_DEF_IS_NOT_LAMBDA);
+    ASSERT_EQ(eval_string("(define (fib n) (if (< n 3) 1 (+ (fib (- n 1)) (fib (- n 2)))))\n"),1);
+    ASSERT_EQ(g_err_state.type,FUNCTION_DEF_IS_NOT_LAMBDA);
 }
 
 TEST_F(LispTest, HigherOrderFunction) {
@@ -310,8 +301,11 @@ TEST_F(LispTest, Or) {
 }
 
 TEST_F(LispTest, And) {
-    auto r = eval_string("(and () #t)\n");
-    EXPECT_EQ(match_variable(r,"#t"),true);
+    auto r = eval_string("(and () ())\n");
+    EXPECT_EQ(match_variable(r,"()"),true);
+
+    r = eval_string("(and 'a 'a)\n");
+    EXPECT_EQ(match_variable(r,"a"),true);
 }
 
 TEST_F(LispTest, Not) {
