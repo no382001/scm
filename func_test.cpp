@@ -2,17 +2,6 @@
 #include <thread>
 #include <fstream>
 
-#define EXPECT_THROW_VALUE(f,val)\
-try {\
-    int r = f;\
-    FAIL() << "Expected exception, got: " << r << " or 0x" << std::hex << r;\
-} catch (decltype(val) exception) {\
-    EXPECT_EQ(exception, val);\
-} catch (...) {\
-    FAIL() << "Expected int exception, but caught different type";\
-}
-
-
 #define FUNC_TEST
 extern "C" {
     #include "tinylisp.c"
@@ -20,7 +9,7 @@ extern "C" {
 
 int orig_stdin;
 int input_pipe[2];
-ERROR_CODE i; // for setjmp
+//ERROR_CODE i; // for setjmp
 
 struct LispTest : public ::testing::Test {
 
@@ -30,8 +19,8 @@ struct LispTest : public ::testing::Test {
         tru = atom("#t");
         env = pair(tru, tru, nil);
 
-        fal = atom("#f");
-        env = pair(fal, fal, env);
+        //fal = atom("#f");
+        //env = pair(fal, fal, env);
 
         for (int i = 0; prim[i].s; ++i) {
             env = pair(atom(prim[i].s), box(PRIM, i), env);
@@ -50,7 +39,7 @@ struct LispTest : public ::testing::Test {
     }
 
     void TearDown() override {
-        c_char_index = 0;
+        //c_char_index = 0;
         hp = 0;
         sp = N;
 
@@ -62,7 +51,7 @@ struct LispTest : public ::testing::Test {
     }
 
     L eval_string(const char* input) {
-        if ((i = (ERROR_CODE)setjmp(jb)) != 0) throw i;
+        //if ((i = (ERROR_CODE)setjmp(jb)) != 0) throw i;
 
         write(input_pipe[1], input, strlen(input));
         
@@ -182,35 +171,26 @@ TEST_F(LispTest, DefineAndUseFunction) {
 }
 
 TEST_F(LispTest, LetBinding) {
-    try {
-    EXPECT_EQ(eval_string("(let ((x 5) (y 3)) (+ x y))\n"), 8);
-    } catch (ERROR_CODE c){
-        std::cout << c << std::endl;
-    }
+    EXPECT_EQ(eval_string("(let* (x 5) (y 3) (+ x y))\n"), 8);
 }
 
 // negative tests
 
 TEST_F(LispTest, UndefinedVariable) {
-    EXPECT_THROW_VALUE(eval_string("(+ a 1)\n"),ASSOC_VALUE_N_FOUND);
+    EXPECT_EQ(eval_string("(+ a 1)\n"),err);
 }
 
 TEST_F(LispTest, TypeMismatch) {
-    EXPECT_THROW_VALUE(eval_string("(+ 'a 1)\n"),TYPE_MISMATCH);
-    EXPECT_THROW_VALUE(eval_string("(+ (quote a) 1)\n"),TYPE_MISMATCH);
+    EXPECT_EQ(eval_string("(+ 'a 1)\n"),err);
+    EXPECT_EQ(eval_string("(+ (quote a) 1)\n"),err);
 }
 
 TEST_F(LispTest, Quote1) {
     auto res = eval_string("(quote a)\n");
     EXPECT_EQ(match_variable(res,"a"),true);
 
-    try { 
-        auto res = eval_string("('b)\n");
-        EXPECT_EQ(match_variable(res,"b"),true);
-    } catch (ERROR_CODE c){
-        FAIL() << c;
-    }
-
+    res = eval_string("('b)\n");
+    EXPECT_EQ(match_variable(res,"b"),true);
 }
 
 TEST_F(LispTest, ComplexExpression) {
