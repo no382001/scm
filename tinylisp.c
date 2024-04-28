@@ -359,7 +359,8 @@ L eval(L x, L e) {
       x = prim[ord(f)].f(x, &e); /* exec prim func */
       
       if (g_err_state.type) {
-        g_err_state.proc = proc;
+        if (!g_err_state.proc)
+          g_err_state.proc = proc;
         longjmp(jb,1);
       }
 
@@ -371,6 +372,7 @@ L eval(L x, L e) {
     if (T(f) != CLOS) {
       g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
       g_err_state.box = car(proc);
+      g_err_state.proc = proc;
       return err;
     }
 
