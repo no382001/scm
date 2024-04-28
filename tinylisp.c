@@ -1,4 +1,37 @@
-/* tinylisp-opt.c with NaN boxing (optimized version) by Robert A. van Engelen 2022 */
+/* tinylisp-opt.c with NaN boxing (optimized version) by Robert A. van Engelen 2022
+
+BSD 3-Clause License
+
+Copyright (c) 2021, Robert van Engelen
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +68,24 @@ I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
 I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
+
+typedef enum {
+  NONE = 0,
+  OUT_OF_MEMORY,
+  DIVIDE_ZERO,
+  CAR_NOT_A_PAIR,
+  CDR_NOT_A_PAIR,
+  ASSOC_VALUE_N_FOUND,
+  APPLY_F_IS_N_CLOS_OR_PRIM,
+  TYPE_MISMATCH,
+} ERROR_T;
+
+typedef struct {
+  ERROR_T type;
+  L box;
+} ERROR_STATE;
+
+static ERROR_STATE g_err_state = { NONE, 0 }; 
 
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
 L cell[N];
@@ -245,42 +296,60 @@ struct {
   {"define", f_define, 0},
   {0}};
 
+void print(L x);
+
 /* TC opt eval */
 L eval(L x, L e) {
+  if (g_err_state.type){
+    printf("%u: ",sp); print(x); printf(" -> "); print(g_err_state.box); putchar('\n');
+  }
+
   L f, v, d;
-  while (1)
-  {
-    if (T(x) == ATOM)
-      return assoc(x, e);
-    if (T(x) != CONS)
+  while (1) {
+    if (T(x) == ATOM){
+      L t = assoc(x, e);
+      if (equ(t,err)){
+        g_err_state.type = ASSOC_VALUE_N_FOUND;
+        g_err_state.box = x;
+      }
+      return t;
+    }
+    if (T(x) != CONS){
       return x;
+    }
     f = eval(car(x), e);
     x = cdr(x);
-    if (T(f) == PRIM)
-    {
+    if (T(f) == PRIM) {
       x = prim[ord(f)].f(x, &e);
       if (prim[ord(f)].t)
         continue;
       return x;
     }
-    if (T(f) != CLOS)
+    if (T(f) != CLOS){
       return err;
+    }
     v = car(car(f));
     d = cdr(f);
-    if (T(d) == NIL)
+    if (T(d) == NIL){
       d = env;
-    for (; T(v) == CONS && T(x) == CONS; v = cdr(v), x = cdr(x))
+    }
+    for (; T(v) == CONS && T(x) == CONS; v = cdr(v), x = cdr(x)){
       d = pair(car(v), eval(car(x), e), d);
-    if (T(v) == CONS)
+    }
+    if (T(v) == CONS){
       x = eval(x, e);
-    for (; T(v) == CONS; v = cdr(v), x = cdr(x))
+    }
+    for (; T(v) == CONS; v = cdr(v), x = cdr(x)){
       d = pair(car(v), car(x), d);
-    if (T(x) == CONS)
+    }
+    if (T(x) == CONS){
       x = evlis(x, e);
-    else if (T(x) != NIL)
+    } else if (T(x) != NIL){
       x = eval(x, e);
-    if (T(v) != NIL)
+    }
+    if (T(v) != NIL){
       d = pair(v, x, d);
+    }
     x = cdr(car(f));
     e = d;
   }
