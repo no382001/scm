@@ -89,10 +89,11 @@ typedef enum {
 typedef struct {
   ERROR_T type;
   L box;
+  L proc;
 } ERROR_STATE;
 
 /* global error state 'eval' checks if its none and jumps to main, overridden in multiple layers */
-static ERROR_STATE g_err_state = { NONE, 0 };
+static ERROR_STATE g_err_state = { NONE, 0, 0 };
 
 jmp_buf jb;
 
@@ -350,19 +351,15 @@ L eval(L x, L e) {
     }
     L proc = x; /* save the proc for error message */
     f = eval(car(x), e); /* get proc sig */
-    
-    if (equ(f,err)) {
-      g_err_state.type = PRIM_PROC_NOT_FOUND;
-      g_err_state.box = car(proc);
-      return err;
-    }
+
+    /* it can fail, like in the case of cons?? or equ() is just for numbers? */
     
     x = cdr(x); /* get proc body */
     if (T(f) == PRIM) {
       x = prim[ord(f)].f(x, &e); /* exec prim func */
       
       if (g_err_state.type) {
-        printf("%u: ",sp); printf("|%s| ",ERROR_T_to_string[g_err_state.type]); print(g_err_state.box); printf(" @ "); print(proc);  putchar('\n');
+        g_err_state.proc = proc;
         longjmp(jb,1);
       }
 
@@ -372,6 +369,8 @@ L eval(L x, L e) {
     }
     
     if (T(f) != CLOS) {
+      g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
+      g_err_state.box = car(proc);
       return err;
     }
 
@@ -516,12 +515,20 @@ int main() {
   }
   
   setjmp(jb);
-  g_err_state.type = NONE;
 
   while (1) {
+    if (g_err_state.type) {
+      printf("%u: ",sp);
+      printf("|%s| ",ERROR_T_to_string[g_err_state.type]);
+      print(g_err_state.box); printf(" @ "); print(g_err_state.proc);  putchar('\n');
+      g_err_state.type = NONE;
+    }
     gc();
     printf("\n%u>", sp - hp / 8);
-    print(eval(Read(), env));
+    L res = eval(Read(), env);
+    if (!equ(err,res)){
+      print(res);
+    }
   }
 }
 
