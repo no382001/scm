@@ -14,6 +14,8 @@ struct LispTest : public ::testing::Test {
 
     void SetUp() override {
         g_err_state.type = NONE;
+        g_err_state.proc = 0;
+        g_err_state.box = 0;
 
         nil = box(NIL, 0);
 
@@ -109,70 +111,97 @@ struct LispTest : public ::testing::Test {
     }
 };
 
+/*
+(define fib
+  (lambda (n)
+    (if (< n 3)
+        1
+        (+ (fib (- n 1)) (fib (- n 2))))))
+
+
+*/
 // positive tests
 
 TEST_F(LispTest, AddSimple) {
     EXPECT_EQ(eval_string("(+ 1 1)\n"), 2);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, AddMultiple) {
     EXPECT_EQ(eval_string("(+ 1 2 3)\n"), 6);
+    EXPECT_EQ(g_err_state.type,NONE);
+
 }
 
 TEST_F(LispTest, SubtractSimple) {
     EXPECT_EQ(eval_string("(- 5 3)\n"), 2);
+    EXPECT_EQ(g_err_state.type,NONE);
+
 }
 
 TEST_F(LispTest, MultiplySimple) {
     EXPECT_EQ(eval_string("(* 2 3)\n"), 6);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, DivideSimple) {
     EXPECT_EQ(eval_string("(/ 6 2)\n"), 3);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, NestedOperations) {
     EXPECT_EQ(eval_string("(+ (* 2 3) (- 5 2))\n"), 9);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, LogicalTrue) {
     auto r = eval_string("(eq? 1 1)\n");
     EXPECT_EQ(match_variable(r,"#t"), true); // assuming '#t' is defined in your environment setup
+    EXPECT_EQ(g_err_state.type,NONE);
+
 }
 
 TEST_F(LispTest, LogicalFalse) {
     auto r = eval_string("(eq? 1 2)\n");
     EXPECT_EQ(match_variable(r,"()"), true); // assuming '()' is defined in your environment setup
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, ConstructList) {
     auto r = eval_string("(cons 1 2)\n");
     EXPECT_EQ(match_variable(r,"(1 . 2)"), true);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, CarOperation) {
     EXPECT_EQ(eval_string("(car (cons 1 2))\n"), 1);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, CdrOperation) {
     EXPECT_EQ(eval_string("(cdr (cons 1 2))\n"), 2);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, IfTrue) {
     EXPECT_EQ(eval_string("(if '(1) 1 2)\n"), 1);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, IfFalse) {
     EXPECT_EQ(eval_string("(if () 1 2)\n"), 2);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, DefineAndUseFunction) {
     eval_string("(define square (lambda (x) (* x x)))\n");
     EXPECT_EQ(eval_string("(square 3)\n"), 9);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, LetBinding) {
     EXPECT_EQ(eval_string("(let* (x 5) (y 3) (+ x y))\n"), 8);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 // negative tests
@@ -190,9 +219,11 @@ TEST_F(LispTest, TypeMismatch) {
 TEST_F(LispTest, Quote1) {
     auto res = eval_string("(quote a)\n");
     EXPECT_EQ(match_variable(res,"a"),true);
+    EXPECT_EQ(g_err_state.type,NONE);
 
     res = eval_string("('b)\n");
     EXPECT_EQ(match_variable(res,"b"),true);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
 TEST_F(LispTest, ComplexExpression) {
@@ -202,9 +233,13 @@ TEST_F(LispTest, ComplexExpression) {
 TEST_F(LispTest, RecursiveFunction) {
     eval_string("(define fact (lambda (n) (if (eq? n 1) 1 (* n (fact (- n 1))))))\n");
     EXPECT_EQ(eval_string("(fact 5)\n"), 120);
+    EXPECT_EQ(g_err_state.type,NONE);
 }
 
-/* (define fact (lambda (n) (if (eq? n 1) 1 (* n (a (- n 1)))))) */
+TEST_F(LispTest, DefineWoLambda) {
+    EXPECT_EQ(eval_string("(define (fib n) (if (< n 3) 1 (+ (fib (- n 1)) (fib (- n 2)))))\n"),1);
+    EXPECT_EQ(g_err_state.type,FUNCTION_DEF_IS_NOT_LAMBDA);
+}
 
 TEST_F(LispTest, HigherOrderFunction) {
     eval_string("(define apply-func (lambda (f x) (f x)))\n");

@@ -73,7 +73,7 @@ I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
 /* errors */
 typedef enum {
   NONE = 0,
-  OUT_OF_MEMORY,
+  STACK_HEAP_COLLISION,
   DIVIDE_ZERO,
   PRIM_PROC_NOT_FOUND,
   CAR_NOT_A_PAIR,
@@ -99,7 +99,7 @@ static ERROR_STATE g_err_state = { NONE, 0, 0 };
 
 jmp_buf jb;
 
-/* used in f_define to ignore immediate errors and roll back to define */
+/* used in f_define to ignore longjump and instead roll the error back to the function */
 short define_underway = 0;
 
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
@@ -129,8 +129,10 @@ L atom(const char *s) {
   I i = 0;
   while (i < hp && strcmp(A + i, s)) /* search matching atom name */
     i += strlen(A + i) + 1;
-  if (i == hp && (hp += strlen(strcpy(A + i, s)) + 1) > sp << 3) /* if not found, allocate and add a new atom name, abort when oom */
-    abort();
+  if (i == hp && (hp += strlen(strcpy(A + i, s)) + 1) > sp << 3) { /* if not found, allocate and add a new atom name, abort when oom */
+    g_err_state.type = STACK_HEAP_COLLISION;
+    longjmp(jb,1);
+  } 
   return box(ATOM, i);
 }
 
@@ -138,8 +140,10 @@ L atom(const char *s) {
 L cons(L x, L y) {
   cell[--sp] = x; /* push car of x  */
   cell[--sp] = y; /* push cdr of y */
-  if (hp > sp << 3)
-    abort(); /* oom */
+  if (hp > sp << 3){
+    g_err_state.type = STACK_HEAP_COLLISION;
+    longjmp(jb,1);
+  }
   return box(CONS, sp);
 }
 
@@ -543,6 +547,8 @@ int main() {
       printf("|%s| ",ERROR_T_to_string[g_err_state.type]);
       print(g_err_state.box); printf(" @ "); print(g_err_state.proc);  putchar('\n');
       g_err_state.type = NONE;
+      g_err_state.box = 0;
+      g_err_state.proc = 0;
     }
     gc();
     printf("\n%u>", sp - hp / 8);
