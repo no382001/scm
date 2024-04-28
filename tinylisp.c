@@ -82,6 +82,8 @@ typedef enum {
   EVAL_F_IS_NOT_A_FUNC,
   APPLY_F_IS_N_CLOS_OR_PRIM,
   TYPE_MISMATCH,
+  FUNCTION_DEF_IS_NOT_LAMBDA
+
 } ERROR_T;
 
 #include "error_map.h"
@@ -174,8 +176,10 @@ L assoc(L v, L e) {
   if (T(e) == CONS){
     return cdr(car(e));
   } else {
-    g_err_state.type = ASSOC_VALUE_N_FOUND;
-    g_err_state.box = v;
+    if (0){
+      g_err_state.type = ASSOC_VALUE_N_FOUND;
+      g_err_state.box = v;
+    }
     return err;
   }
 }
@@ -301,10 +305,18 @@ L f_leta(L t, L *e)
     *e = pair(car(car(t)), eval(car(cdr(car(t))), *e), *e);
   return car(t);
 }
-L f_lambda(L t, L *e) { return closure(car(t), car(cdr(t)), *e); }
-L f_define(L t, L *e)
-{
-  env = pair(car(t), eval(car(cdr(t)), *e), env);
+L f_lambda(L t, L *e) { return closure(car(t), car(cdr(t)), *e); } // incorrectly defined lambdas abort
+
+// procedures can only be defined with lambdas
+L f_define(L t, L *e) {
+  L res = eval(car(cdr(t)), *e);
+  if (equ(res,err)){
+    g_err_state.type = FUNCTION_DEF_IS_NOT_LAMBDA;
+    g_err_state.box = car(t);
+    g_err_state.proc = t;
+    return res;
+  }
+  env = pair(car(t), res, env);
   return car(t);
 }
 /* table of Lisp primitives, each has a name s and function pointer f */
@@ -370,9 +382,11 @@ L eval(L x, L e) {
     }
     
     if (T(f) != CLOS) {
-      g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
-      g_err_state.box = car(proc);
-      g_err_state.proc = proc;
+      if (0){
+        g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
+        g_err_state.box = car(proc);
+        g_err_state.proc = proc;
+      }
       return err;
     }
 
