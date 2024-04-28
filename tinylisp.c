@@ -99,6 +99,9 @@ static ERROR_STATE g_err_state = { NONE, 0, 0 };
 
 jmp_buf jb;
 
+/* used in f_define to ignore immediate errors and roll back to define */
+short define_underway = 0;
+
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
 L cell[N];
 
@@ -176,10 +179,8 @@ L assoc(L v, L e) {
   if (T(e) == CONS){
     return cdr(car(e));
   } else {
-    if (0){
-      g_err_state.type = ASSOC_VALUE_N_FOUND;
-      g_err_state.box = v;
-    }
+    g_err_state.type = ASSOC_VALUE_N_FOUND;
+    g_err_state.box = v;
     return err;
   }
 }
@@ -309,7 +310,10 @@ L f_lambda(L t, L *e) { return closure(car(t), car(cdr(t)), *e); } // incorrectl
 
 // procedures can only be defined with lambdas
 L f_define(L t, L *e) {
+  define_underway++;
   L res = eval(car(cdr(t)), *e);
+  define_underway--;
+
   if (equ(res,err)){
     g_err_state.type = FUNCTION_DEF_IS_NOT_LAMBDA;
     g_err_state.box = car(t);
@@ -371,9 +375,12 @@ L eval(L x, L e) {
       x = prim[ord(f)].f(x, &e); /* exec prim func */
       
       if (g_err_state.type) {
-        if (!g_err_state.proc)
+        if (!g_err_state.proc){
           g_err_state.proc = proc;
-        longjmp(jb,1);
+        }
+        if(!define_underway){
+          longjmp(jb,1);
+        }
       }
 
       if (prim[ord(f)].t) /* do tc if its on */
@@ -382,11 +389,9 @@ L eval(L x, L e) {
     }
     
     if (T(f) != CLOS) {
-      if (0){
-        g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
-        g_err_state.box = car(proc);
-        g_err_state.proc = proc;
-      }
+      g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
+      g_err_state.box = car(proc);
+      g_err_state.proc = proc;
       return err;
     }
 
