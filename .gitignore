@@ -33,3 +33,8 @@
 
 .vscode/*
 error_map.h
+cov_report/
+coverage.info
+func_test.gcda
+func_test.gcno
+test_coverage

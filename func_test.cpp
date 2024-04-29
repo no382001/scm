@@ -334,7 +334,63 @@ TEST_F(LispTest, Define) {
     eval_string("(define x 42)\n");
     EXPECT_EQ(eval_string("x\n"), 42);
 }
+/** /
+TEST_F(LispTest, AddNonNumber) {
+    EXPECT_EQ(eval_string("(+ 1 'a)\n"), err);
+    EXPECT_EQ(g_err_state.type, TYPE_MISMATCH);
+}
 
+TEST_F(LispTest, SubtractNonNumber) {
+    EXPECT_EQ(eval_string("(- 'x 2)\n"), err);
+    EXPECT_EQ(g_err_state.type, TYPE_MISMATCH);
+}
+
+TEST_F(LispTest, MultiplyNonNumber) {
+    EXPECT_EQ(eval_string("(* 'foo 3)\n"), err);
+    EXPECT_EQ(g_err_state.type, TYPE_MISMATCH);
+}
+
+TEST_F(LispTest, DivideNonNumber) {
+    EXPECT_EQ(eval_string("(/ 4 'b)\n"), err);
+    EXPECT_EQ(g_err_state.type, TYPE_MISMATCH);
+}
+
+TEST_F(LispTest, DivideByZero) {
+    EXPECT_EQ(eval_string("(/ 4 0)\n"), err);
+    EXPECT_EQ(g_err_state.type, DIVIDE_ZERO);
+}
+
+TEST_F(LispTest, InvalidArgumentCount) {
+    EXPECT_EQ(eval_string("(car 'a 'b)\n"), err);
+    EXPECT_EQ(g_err_state.type, TYPE_MISMATCH);
+}
+
+TEST_F(LispTest, AddNoArgs) {
+    EXPECT_EQ(eval_string("(+)\n"), 0);
+    EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, MultiplyNoArgs) {
+    EXPECT_EQ(eval_string("(*)\n"), 1);
+    EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, LogicalOperatorsNoArgs) {
+    EXPECT_EQ(eval_string("(and)\n"), true);
+    EXPECT_EQ(eval_string("(or)\n"), false);
+    EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, ComplexArithmeticExpression) {
+    EXPECT_EQ(eval_string("(* (+ 2 3) (- 5 3) (/ 8 2))\n"), 40);
+    EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, ComplexLogicalExpression) {
+    EXPECT_EQ(eval_string("(and (eq? 1 1) (not (eq? 1 0)))\n"), true);
+    EXPECT_EQ(g_err_state.type, NONE);
+}
+*/
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
