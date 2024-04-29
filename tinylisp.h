@@ -50,7 +50,11 @@ typedef enum {
   EVAL_F_IS_NOT_A_FUNC,
   APPLY_F_IS_N_CLOS_OR_PRIM,
   TYPE_MISMATCH,
-  FUNCTION_DEF_IS_NOT_LAMBDA
+  FUNCTION_DEF_IS_NOT_LAMBDA,
+  LOAD_FILENAME_MUST_BE_ATOM,
+  LOAD_CANNOT_OPEN_FILE,
+  LOAD_FAILED_TO_REDIRECT_STDIN,
+  DISPLAY_NO_ARG
 
 } ERROR_T;
 
@@ -160,6 +164,8 @@ void f_load_close_streams();
 /* load expressions from file into stdin 
    after look() reads EOF give stdin back to user with f_load_close_streams()  */
 L f_load(L t, L *e);
+L f_display(L t, L *e);
+
 void print(L x);
 L eval(L x, L e);
 void look();
@@ -231,4 +237,5 @@ struct {
   {"lambda", f_lambda, 0},
   {"define", f_define, 0},
   {"load", f_load, 0},
+  {"display", f_display, 0},
   {0}};

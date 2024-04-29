@@ -195,26 +195,44 @@ void f_load_close_streams(){
 L f_load(L t, L *e) {
     L x = car(t);
     if (T(x) != ATOM) {
-        printf("[LOAD] Filename must be an atom.\n");
-        return err;
+      g_err_state.type = LOAD_FILENAME_MUST_BE_ATOM;
+      g_err_state.box = x;
+      g_err_state.proc = atom("load");
+      return err;
     }
 
     const char *filename = A + ord(x);
     file = fopen(filename, "r");
     if (!file) {
-        printf("[LOAD] Cannot open %s\n", filename);
-        return err;
+      g_err_state.type = LOAD_CANNOT_OPEN_FILE;
+      g_err_state.box = x;
+      g_err_state.proc = atom("load");
+      return err;
     }
     
     // redirect stdin directly from the file
     original_stdin = dup(STDIN_FILENO);
     if (dup2(fileno(file), STDIN_FILENO) == -1) {
-        fclose(file);
-        printf("[LOAD] failed to redirect stdin from file.\n");
-        return err;
+      fclose(file);
+      g_err_state.type = LOAD_FAILED_TO_REDIRECT_STDIN;
+      g_err_state.box = x;
+      g_err_state.proc = atom("load");
+      return err;
     }
 
     return err;
+}
+
+L f_display(L t, L *e) {
+  L r = car(t);
+  if (equ(r,err)){
+    g_err_state.type = DISPLAY_NO_ARG;
+    g_err_state.box = r;
+    g_err_state.proc = atom("display");
+    return err;
+  }
+  print(car(t));
+  return err;
 }
 
 L eval(L x, L e) {
