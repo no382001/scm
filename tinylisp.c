@@ -171,6 +171,18 @@ L f_leta(L t, L *e) {
   return car(t);
 }
 
+/* allows for local recursion where the name may also appear in the value of a letrec* name-value pair. 
+   like this: (letrec* (f (lambda (n) (if (< 1 n) (* n (f (- n 1))) 1))) (f 5))
+*/
+L f_letreca(L t,L *e) { // this also should only accept lambdas
+  for (; let(t); t = cdr(t)) {
+    *e = pair(car(car(t)),err,*e);
+    cell[sp+2] = eval(car(cdr(car(t))),*e);
+  }
+  return eval(car(t),*e);
+}
+
+
 /* evaluates all expressions first before binding the values */
 L f_let(L t,L *e) {
   L d = *e;
@@ -352,7 +364,6 @@ L eval(L x, L e) {
   }
 }
 
-void f_load_close_streams();
 void look() {
   int c = getchar();
   if (c == EOF) {
@@ -489,7 +500,6 @@ int main() {
   for (i = 0; prim[i].s; ++i){
     env = pair(atom(prim[i].s), box(PRIM, i), env);
   }
-  
   setjmp(jb);
 
   while (1) {

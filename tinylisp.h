@@ -4,6 +4,8 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <assert.h>
+#include <dirent.h>
+#include <string.h>
 
 /* we only need two types to implement a Lisp interpreter:
         I    unsigned integer (either 16 bit, 32 bit or 64 bit unsigned)
@@ -157,6 +159,7 @@ L f_and(L t, L *e);
 L f_cond(L t, L *e);
 L f_if(L t, L *e);
 L f_leta(L t, L *e);
+L f_letreca(L t,L *e);
 L f_let(L t,L *e);
 
 // incorrectly defined lambdas abort
@@ -188,7 +191,6 @@ L list();
 L parse();
 void printlist(L t);
 void gc();
-
 
 /* Lisp primitives:
    (eval x)            return evaluated x (such as when x was quoted)
@@ -252,4 +254,5 @@ struct {
   {"display", f_display, 0},
   {"newline", f_newline, 0},
   {"begin", f_begin, 0},
+  {"letrec*", f_letreca, 0},
   {0}};
