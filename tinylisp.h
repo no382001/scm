@@ -80,7 +80,7 @@ short define_underway = 0;
 L cell[N];
 
 /* Lisp constant expressions () (nil), #t, ERR, and the global environment env */
-L nil, tru, err, env;
+L nil, tru, nop, err, env;
 
 #define PARSE_BUFFER 1024
 char buf[PARSE_BUFFER], see = ' ';

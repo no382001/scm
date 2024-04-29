@@ -214,8 +214,7 @@ L f_load(L t, L *e) {
         return err;
     }
 
-    longjmp(jb,1);
-    return nil;
+    return err;
 }
 
 L eval(L x, L e) {
@@ -329,7 +328,12 @@ char scan() {
   while (seeing(' ')){
     look();
   }
-  if (seeing('(') || seeing(')') || seeing('\'')){
+  if (seeing(';')) {
+    while (!seeing('\n') && see != EOF) {
+      look();
+    }
+    return scan();
+  } else if (seeing('(') || seeing(')') || seeing('\'')){
     char c = get();
     buf[i++] = c;
   } else {
