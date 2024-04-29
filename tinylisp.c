@@ -197,7 +197,6 @@ L f_load(L t, L *e) {
     if (T(x) != ATOM) {
       g_err_state.type = LOAD_FILENAME_MUST_BE_ATOM;
       g_err_state.box = x;
-      g_err_state.proc = atom("load");
       return err;
     }
 
@@ -206,7 +205,6 @@ L f_load(L t, L *e) {
     if (!file) {
       g_err_state.type = LOAD_CANNOT_OPEN_FILE;
       g_err_state.box = x;
-      g_err_state.proc = atom("load");
       return err;
     }
     
@@ -216,7 +214,6 @@ L f_load(L t, L *e) {
       fclose(file);
       g_err_state.type = LOAD_FAILED_TO_REDIRECT_STDIN;
       g_err_state.box = x;
-      g_err_state.proc = atom("load");
       return err;
     }
 
@@ -228,11 +225,34 @@ L f_display(L t, L *e) {
   if (equ(r,err)){
     g_err_state.type = DISPLAY_NO_ARG;
     g_err_state.box = r;
-    g_err_state.proc = atom("display");
     return err;
   }
   print(car(t));
   return err;
+}
+
+L f_newline(L t, L *e) {
+  if (!_not(t)){
+    g_err_state.type = NEWLINE_TAKES_NO_ARG;
+    g_err_state.box = t;
+    return err;
+  }
+  putchar('\n');
+  return err;
+}
+
+L f_begin(L t, L *e) {
+  if (_not(t)){
+    g_err_state.type = BEGIN_NO_RETURN_VAL;
+    g_err_state.box = t;
+    return err;
+  }
+  L result = nil;
+  while (T(t) == CONS) {
+      result = eval(car(t), *e);
+      t = cdr(t);
+  }
+  return result;
 }
 
 L eval(L x, L e) {
@@ -444,7 +464,8 @@ int main() {
 
   int i;
   nil = box(NIL, 0);
-  err = atom("ERR");
+  nop = box(NOP, 0);
+  err = atom("ERR"); // display and load returns this too but does not set an error status
   tru = atom("#t");
   env = pair(tru, tru, nil);
   for (i = 0; prim[i].s; ++i){

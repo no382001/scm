@@ -36,7 +36,7 @@
 I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
-I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc;
+I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, NOP = 0x7ffd; 
 
 /* errors */
 typedef enum {
@@ -54,7 +54,9 @@ typedef enum {
   LOAD_FILENAME_MUST_BE_ATOM,
   LOAD_CANNOT_OPEN_FILE,
   LOAD_FAILED_TO_REDIRECT_STDIN,
-  DISPLAY_NO_ARG
+  DISPLAY_NO_ARG,
+  BEGIN_NO_RETURN_VAL,
+  NEWLINE_TAKES_NO_ARG
 
 } ERROR_T;
 
@@ -162,9 +164,16 @@ L f_define(L t, L *e);
 void f_load_close_streams();
 
 /* load expressions from file into stdin 
-   after look() reads EOF give stdin back to user with f_load_close_streams()  */
+   after look() reads EOF give stdin back to user with f_load_close_streams()
+   and returns error (but no err status set) */
 L f_load(L t, L *e);
+
+/* prints an atom to stdout and returns error (but no err status set) */
 L f_display(L t, L *e);
+L f_newline(L t, L *e);
+
+/* evaluates a list of exprs and returns the last value */
+L f_begin(L t, L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -238,4 +247,6 @@ struct {
   {"define", f_define, 0},
   {"load", f_load, 0},
   {"display", f_display, 0},
+  {"newline", f_newline, 0},
+  {"begin", f_begin, 0},
   {0}};
