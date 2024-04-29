@@ -1,4 +1,4 @@
-#include "tinylisp.h"
+#include "tinyscheme.h"
 
 L box(I t, I i) {
   L x;

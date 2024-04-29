@@ -6,10 +6,10 @@ LDFLAGS=-lgtest -lgtest_main -pthread
 LCOVFLAGS=-fprofile-arcs -ftest-coverage 
 RM=rm -f
 
-all: tinylisp
+all: tinyscheme
 
-tinylisp: gen_enum
-	$(CC) $(CFLAGS) tinylisp.c -o tinylisp
+tinyscheme: gen_enum
+	$(CC) $(CFLAGS) tinyscheme.c -o tinyscheme
 
 test: gen_enum
 	$(CXX) $(CXXFLAGS) func_test.cpp $(LDFLAGS) -o test && ./test
@@ -22,7 +22,7 @@ gen_enum:
 	python3 gen_enum_map.py
 
 clean:
-	$(RM) *.o *.out error_map.h tinylisp test* coverage.info func_test.gcda func_test.gcno
+	$(RM) *.o *.out error_map.h tinyscheme test* coverage.info func_test.gcda func_test.gcno
 
 help:
 	@echo "Usage:"

@@ -4,7 +4,7 @@
 
 #define FUNC_TEST
 extern "C" {
-    #include "tinylisp.c"
+    #include "tinyscheme.c"
 };
 
 int orig_stdin;
