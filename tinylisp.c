@@ -364,6 +364,21 @@ L eval(L x, L e) {
   }
 }
 
+void skip_multiline_comment() {
+  get(); // consume the '|' after '#'
+  while (1) {
+    if (see == '|') {
+      get(); // consume the '|'
+      if (see == '#') {
+        get(); // consume the '#', end of comment
+        return;
+      }
+    } else {
+      get(); // continue reading through the comment
+    }
+  }
+}
+
 void look() {
   int c = getchar();
   if (c == EOF) {
@@ -395,7 +410,15 @@ char scan() {
   while (seeing(' ')){
     look();
   }
-  if (seeing(';')) {
+  // multiline comments
+  if (see == '#') { // uhmm, this might have some consequences no?
+    get();
+    if (see == '|') {
+      skip_multiline_comment();
+      return scan();
+    }
+  // single line comment
+  } else if (seeing(';')) {
     while (!seeing('\n') && see != EOF) {
       look();
     }

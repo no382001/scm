@@ -19,9 +19,10 @@
                     (loop (update i step) (cons (body i) lst)))))
     (loop i init-list))))
 
-
+#| haha its a multiline comment
 (do-collect 0 1 '()   ; start from 0, empty initial list
   (lambda (i) i)                  ; body: the number itself
   (lambda (i) (eq? i 10))          ; condition: stop when i is 10
   (lambda (i step) (+ i step))    ; update: increment i by step
   (lambda (lst) (reverse lst)))  ; result: return the reversed list to maintain order
+|#
