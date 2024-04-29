@@ -55,6 +55,7 @@ typedef enum {
   LOAD_CANNOT_OPEN_FILE,
   LOAD_FAILED_TO_REDIRECT_STDIN,
   DISPLAY_NO_ARG,
+  DISPLAY_EVAL_ERROR,
   BEGIN_NO_RETURN_VAL,
   NEWLINE_TAKES_NO_ARG
 
@@ -156,6 +157,7 @@ L f_and(L t, L *e);
 L f_cond(L t, L *e);
 L f_if(L t, L *e);
 L f_leta(L t, L *e);
+L f_let(L t,L *e);
 
 // incorrectly defined lambdas abort
 L f_lambda(L t, L *e);
@@ -243,6 +245,7 @@ struct {
   {"cond", f_cond, 1},
   {"if", f_if, 1},
   {"let*", f_leta, 1},
+  {"let", f_let, 1},
   {"lambda", f_lambda, 0},
   {"define", f_define, 0},
   {"load", f_load, 0},

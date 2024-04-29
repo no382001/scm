@@ -161,11 +161,20 @@ L f_cond(L t, L *e) {
 }
 L f_if(L t, L *e) { return car(cdr(_not(eval(car(t), *e)) ? cdr(t) : t)); }
 
+/* (let* (var1 expr1 ) (var2 expr2 ) ... (varn exprn ) expr) */
 L f_leta(L t, L *e) {
   for (; let(t); t = cdr(t))
     *e = pair(car(car(t)), eval(car(cdr(car(t))), *e), *e);
   return car(t);
 }
+
+/* evaluates all expressions first before binding the values */
+L f_let(L t,L *e) {
+  L d = *e;
+  for (; let(t); t = cdr(t)) d = pair(car(car(t)),eval(car(cdr(car(t))),*e),d);
+    return eval(car(t),d);
+}
+
 
 L f_lambda(L t, L *e) { return closure(car(t), car(cdr(t)), *e); }
 
@@ -221,13 +230,19 @@ L f_load(L t, L *e) {
 }
 
 L f_display(L t, L *e) {
-  L r = car(t);
-  if (equ(r,err)){
+  if (_not(t)) {
     g_err_state.type = DISPLAY_NO_ARG;
+    return err;
+  }
+
+  L r = eval(car(t), *e);
+  if (equ(r, err)) {
+    g_err_state.type = DISPLAY_EVAL_ERROR; // maybe its a string? and print it?
     g_err_state.box = r;
     return err;
   }
-  print(car(t));
+
+  print(r);
   return err;
 }
 
@@ -275,10 +290,10 @@ L eval(L x, L e) {
       x = prim[ord(f)].f(x, &e); /* exec prim func */
       
       if (g_err_state.type) {
-        if (!g_err_state.proc){
+        if (!g_err_state.proc) {
           g_err_state.proc = proc;
         }
-        if(!define_underway){
+        if(!define_underway) { // i could just check for errtype inside define instead of this
           longjmp(jb,1);
         }
       }

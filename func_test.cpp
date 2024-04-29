@@ -340,3 +340,36 @@ int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+TEST_F(LispTest, FBasicAddition) {
+    ASSERT_NEAR(eval_string("(+ 0.1 0.2)\n"), 0.3, 0.0001);
+}
+
+TEST_F(LispTest, FineGrainedSubtraction) {
+    EXPECT_EQ(eval_string("(- 0.30000000000000004 0.2)\n"), 0.10000000000000004);
+}
+
+TEST_F(LispTest, LargeNumberMultiplication) {
+    EXPECT_EQ(eval_string("(* 100000000 100000000)\n"), 10000000000000000);
+}
+
+TEST_F(LispTest, DivisionBySmallNumber) {
+    EXPECT_EQ(eval_string("(/ 1 0.0000001)\n"), 10000000);
+}
+
+TEST_F(LispTest, ChainedArithmetic) {
+    ASSERT_NEAR(eval_string("(+ (* 2.5234 5.33) (- 10.003242301 3.6))\n"), 19.853, 0.0001);
+}
+
+TEST_F(LispTest, IntegerOverflow) {
+    EXPECT_EQ(eval_string("(+ 2147483647 1)\n"), 2147483648);
+}
+
+TEST_F(LispTest, FloatingPointUnderflow) {
+    EXPECT_EQ(eval_string("(* 1e-308 1e-308)\n"), 0);
+}
+
+TEST_F(LispTest, ComplexFtpDebuf) {
+    eval_string("(load stl/math.lisp)\n");
+    ASSERT_NEAR(eval_string("(sin 1.0)\n"),0.8414709848,0.001);
+}
