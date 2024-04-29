@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <unistd.h>
+#include <assert.h>
 
 /* we only need two types to implement a Lisp interpreter:
         I    unsigned integer (either 16 bit, 32 bit or 64 bit unsigned)
@@ -61,7 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define A (char *)cell
 
 /* number of cells for the shared stack and atom heap, increase N as desired */
-#define N 1024
+#define N 1024*20
 /* hp: heap pointer, A+hp with hp=0 points to the first atom string in cell[]
    sp: stack pointer, the stack starts at the top of cell[] with sp=N
    safety invariant: hp <= sp<<3 */
@@ -97,7 +99,25 @@ typedef struct {
 /* global error state 'eval' checks if its none and jumps to main, overridden in multiple layers */
 static ERROR_STATE g_err_state = { NONE, 0, 0 };
 
+void print(L);
+int print_and_reset_error() {
+  if (g_err_state.type) {
+    printf("%u: ",sp);
+    printf("|%s| ",ERROR_T_to_string[g_err_state.type]);
+    print(g_err_state.box); printf(" @ "); print(g_err_state.proc);  //putchar('\n');
+    g_err_state.type = NONE;
+    g_err_state.box = 0;
+    g_err_state.proc = 0;
+    return 1;
+  }
+  return 0;
+}
+
 jmp_buf jb;
+
+int fseof = 0;
+FILE* file = 0;
+int original_stdin = 0;
 
 /* used in f_define to ignore longjump and instead roll the error back to the function */
 short define_underway = 0;
@@ -232,7 +252,8 @@ L evlis(L t, L e) {
          ...
          y)            sequentially binds each variable v1 to xi to evaluate y
    (lambda v x)        construct a closure
-   (define v x)        define a named value globally */
+   (define v x)        define a named value globally 
+   (load filename)     read a file into stdin */
 L f_eval(L t, L *e) { return car(evlis(t, *e)); }
 L f_quote(L t, L *_) { return car(t); }
 L f_cons(L t, L *e) { return t = evlis(t, *e), cons(car(t), car(cdr(t))); }
@@ -311,7 +332,7 @@ L f_leta(L t, L *e)
   return car(t);
 }
 L f_lambda(L t, L *e) { return closure(car(t), car(cdr(t)), *e); } // incorrectly defined lambdas abort
-
+void print(L);
 // procedures can only be defined with lambdas
 L f_define(L t, L *e) {
   define_underway++;
@@ -325,8 +346,48 @@ L f_define(L t, L *e) {
     return res;
   }
   env = pair(car(t), res, env);
+  //print(t);
   return car(t);
 }
+char see = ' ';
+void print(L);
+L Read();
+
+void f_load_close_streams(){
+  dup2(original_stdin, STDIN_FILENO);
+  close(original_stdin);
+  fclose(file);
+  file = 0;
+}
+
+/* load expressions from file into stdin 
+   after look() reads EOF give stdin back to user with f_load_close_streams()  */
+L f_load(L t, L *e) {
+    L x = car(t);
+    if (T(x) != ATOM) {
+        printf("[LOAD] Filename must be an atom.\n");
+        return err;
+    }
+
+    const char *filename = A + ord(x);
+    file = fopen(filename, "r");
+    if (!file) {
+        printf("[LOAD] Cannot open %s\n", filename);
+        return err;
+    }
+    
+    // redirect stdin directly from the file
+    original_stdin = dup(STDIN_FILENO);
+    if (dup2(fileno(file), STDIN_FILENO) == -1) {
+        fclose(file);
+        printf("[LOAD] failed to redirect stdin from file.\n");
+        return err;
+    }
+
+    longjmp(jb,1);
+    return nil;
+}
+
 /* table of Lisp primitives, each has a name s and function pointer f */
 struct {
   const char *s;
@@ -354,6 +415,7 @@ struct {
   {"let*", f_leta, 1},
   {"lambda", f_lambda, 0},
   {"define", f_define, 0},
+  {"load", f_load, 0},
   {0}};
 
 void print(L x);
@@ -438,13 +500,26 @@ L eval(L x, L e) {
   }
 }
 
-char buf[40], see = ' ';
+#define PARSE_BUFFER 1024
 
+char buf[PARSE_BUFFER];// see = ' ';
+void f_load_close_streams();
 void look() {
   int c = getchar();
+  if (c == EOF) {
+    // check if EOF is due to an actual end of file condition
+    if (feof(stdin)) {
+      if (file) {  // check if we are reading from a redirected file
+        f_load_close_streams();  // close file and restore original stdin
+        clearerr(stdin);  // clear EOF condition on stdin
+        see = ' ';
+        return;     // return to avoid setting see to EOF
+      } else {
+        exit(1);  // exit if EOF on the original stdin and not processing a file
+      }
+    }
+  }
   see = c;
-  if (c == EOF)
-    exit(0);
 }
 
 I seeing(char c) { return c == ' ' ? see > 0 && see <= c : see == c; }
@@ -457,18 +532,27 @@ char get() {
 
 char scan() {
   int i = 0;
-  while (seeing(' '))
+  while (seeing(' ')){
     look();
-  if (seeing('(') || seeing(')') || seeing('\''))
-    buf[i++] = get();
-  else
-    do
-      buf[i++] = get();
-    while (i < 39 && !seeing('(') && !seeing(')') && !seeing(' '));
+  }
+  if (seeing('(') || seeing(')') || seeing('\'')){
+    char c = get();
+    buf[i++] = c;
+  } else {
+    do {
+      char c = get();
+      buf[i++] = c;
+    } while (i < PARSE_BUFFER-1 && !seeing('(') && !seeing(')') && !seeing(' '));
+  }
   return buf[i] = 0, *buf;
 }
 
-L Read() { return scan(), parse(); }
+L Read() {
+  if (see == EOF){
+    return nil;
+  }
+  return scan(), parse();
+}
 
 L list() {
   L t, *p;
@@ -542,14 +626,7 @@ int main() {
   setjmp(jb);
 
   while (1) {
-    if (g_err_state.type) {
-      printf("%u: ",sp);
-      printf("|%s| ",ERROR_T_to_string[g_err_state.type]);
-      print(g_err_state.box); printf(" @ "); print(g_err_state.proc);  putchar('\n');
-      g_err_state.type = NONE;
-      g_err_state.box = 0;
-      g_err_state.proc = 0;
-    }
+    print_and_reset_error();
     gc();
     printf("\n%u>", sp - hp / 8);
     L res = eval(Read(), env);
