@@ -49,7 +49,7 @@
                 (if (< x y)
                     x
                     y))
-            9.999
+            9.9999999
             args)))
 (define max
     (lambda args
@@ -57,7 +57,7 @@
             (if (< x y)
                 y
                 x))
-        -9.999
+        -9.9999999
         args)))
 (define filter
     (lambda (f t)
