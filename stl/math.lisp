@@ -36,13 +36,13 @@
 ; sine function using Maclaurin series approximation
 (define sin (lambda (x)
   (+ x
-    (- 0 (/ (power x 3) (factorial 3))) ; this is really stupid that i have to use (- 0 1) to represent -1
-    (+ 0 (/ (power x 5) (factorial 5)))
-    (- 0 (/ (power x 7) (factorial 7))))))
+    (- (/ (power x 3) (factorial 3)))
+    (+ (/ (power x 5) (factorial 5)))
+    (- (/ (power x 7) (factorial 7))))))
 
 ; cosine function using Maclaurin series approximation
 (define cos (lambda (x)
   (+ 1
-     (- 0 (/ (power x 2) (factorial 2)))
-     (+ 0 (/ (power x 4) (factorial 4)))
-     (- 0 (/ (power x 6) (factorial 6))))))
+     (- (/ (power x 2) (factorial 2)))
+     (+ (/ (power x 4) (factorial 4)))
+     (- (/ (power x 6) (factorial 6))))))

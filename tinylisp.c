@@ -103,6 +103,9 @@ L f_add(L t, L *e) {
 
 L f_sub(L t, L *e) {
   L n = car(t = evlis(t, *e));
+  if (_not(cdr(t))) {  // no second arg
+    return num(-n);
+  }
   while (!_not(t = cdr(t)))
     n -= car(t);
   return num(n);
