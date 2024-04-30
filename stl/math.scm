@@ -34,11 +34,11 @@
       (* base (power base (- exp 1))))))
 
 ; sine function using Maclaurin series approximation
-(define sin (lambda (x)
+(defun sin  (x)
   (+ x
     (- (/ (power x 3) (factorial 3)))
     (+ (/ (power x 5) (factorial 5)))
-    (- (/ (power x 7) (factorial 7))))))
+    (- (/ (power x 7) (factorial 7)))))
 
 ; cosine function using Maclaurin series approximation
 (define cos (lambda (x)
