@@ -23,6 +23,8 @@ L atom(const char *s) {
   return box(ATOM, i);
 }
 
+L macro(L v,L x) { return box(MACR,ord(cons(v,x))); }
+
 L cons(L x, L y) {
   cell[--sp] = x; /* push car of x  */
   cell[--sp] = y; /* push cdr of y */
@@ -34,7 +36,7 @@ L cons(L x, L y) {
 }
 
 L car(L p) { 
-  if ((T(p) & ~(CONS ^ CLOS)) == CONS ){
+  if (T(p) == CONS || T(p) == CLOS || T(p) == MACR) {
     return cell[ord(p) + 1];
   } else {
     g_err_state.type = CAR_NOT_A_PAIR;
@@ -44,7 +46,7 @@ L car(L p) {
 }
 
 L cdr(L p) {
-  if ((T(p) & ~(CONS ^ CLOS)) == CONS ){
+  if (T(p) == CONS || T(p) == CLOS || T(p) == MACR) {
     return cell[ord(p)];
   } else {
     g_err_state.type = CDR_NOT_A_PAIR;
@@ -209,6 +211,11 @@ L f_define(L t, L *e) {
   return car(t);
 }
 
+
+L f_macro(L t, L *e){
+  return macro(car(t),car(cdr(t))); 
+}
+
 void f_load_close_streams(){
   dup2(original_stdin, STDIN_FILENO);
   close(original_stdin);
@@ -285,6 +292,35 @@ L f_begin(L t, L *e) {
   return result;
 }
 
+L bind(L v,L t,L e) { return T(v) == NIL ? e : T(v) == CONS ?
+  bind(
+    cdr(v),cdr(t),pair(
+      car(v),car(t),e)) : pair(v,t,e); }
+
+L expand(L f,L t,L e) {
+  L bind_r = bind(car(f),t,env);
+  if (equ(bind_r,err)){
+    g_err_state.type = MACRO_EXPAND_BIND_FAILED;
+    g_err_state.box = cdr(f);
+    return err;
+  }
+  
+  L eval1_r = eval(cdr(f),bind_r);
+  if (equ(eval1_r,err)){
+    g_err_state.type = MACRO_EXPAND_BODY_EVAL_FAILED;
+    g_err_state.box = cdr(f);
+    return err;
+  }
+  
+  L eval2_r = eval(eval1_r,e);
+  if (equ(eval2_r,err)){
+    g_err_state.type = MACRO_EXPAND_EXECUTION_FAILED;
+    g_err_state.box = eval1_r;
+  }
+
+  return eval2_r;
+}
+
 L eval(L x, L e) {
 
   L f, v, d;
@@ -295,9 +331,15 @@ L eval(L x, L e) {
     if (T(x) != CONS) { /* could be a prim, return directly */
       return x;
     }
+
     L proc = x; /* save the proc for error message */
     f = eval(car(x), e); /* get proc sig */
 
+    if (T(f) == MACR) {
+      L macro_args = cdr(x);
+      x = expand(f, macro_args, e);
+      return x;
+    }
     /* it can fail, like in the case of cons?? or equ() is just for numbers? */
     
     x = cdr(x); /* get proc body */
@@ -318,7 +360,7 @@ L eval(L x, L e) {
       return x;
     }
     
-    if (T(f) != CLOS) {
+    if (T(f) != CLOS && T(f) != MACR){
       g_err_state.type = EVAL_F_IS_NOT_A_FUNC;
       g_err_state.box = car(proc);
       g_err_state.proc = proc;
@@ -487,7 +529,7 @@ void print(L x) {
     printf("%s", A + ord(x));
   else if (T(x) == PRIM)
     printf("<%s>", prim[ord(x)].s);
-  else if (T(x) == CONS)
+  else if (T(x) == CONS || T(x) == MACR)
     printlist(x);
   else if (T(x) == CLOS)
     printf("{%u}", ord(x));
@@ -516,7 +558,6 @@ int main() {
 
   int i;
   nil = box(NIL, 0);
-  nop = box(NOP, 0);
   err = atom("ERR"); // display and load returns this too but does not set an error status
   tru = atom("#t");
   env = pair(tru, tru, nil);

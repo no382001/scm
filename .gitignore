@@ -39,3 +39,4 @@ func_test.gcda
 func_test.gcno
 test_coverage
 tinyscheme
+test

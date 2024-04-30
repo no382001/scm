@@ -38,4 +38,7 @@
 (define list (lambda args args))
 (define cadr (lambda (x) (car (cdr x))))
 (define caddr (lambda (x) (car (cdr (cdr x)))))
-(define begin (lambda (x . args) (if args (begin . args) x)))
+;(define begin (lambda (x . args) (if args (begin . args) x)))
+
+(define defun (macro (f v x) (list 'define f (list 'lambda v x))))
+(defun square (n) (* n n))

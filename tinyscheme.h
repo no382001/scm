@@ -38,7 +38,7 @@
 I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
-I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, NOP = 0x7ffd; 
+I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, MACR = 0x7ffd;  
 
 /* errors */
 typedef enum {
@@ -59,8 +59,10 @@ typedef enum {
   DISPLAY_NO_ARG,
   DISPLAY_EVAL_ERROR,
   BEGIN_NO_RETURN_VAL,
-  NEWLINE_TAKES_NO_ARG
-
+  NEWLINE_TAKES_NO_ARG,
+  MACRO_EXPAND_BIND_FAILED,
+  MACRO_EXPAND_BODY_EVAL_FAILED,
+  MACRO_EXPAND_EXECUTION_FAILED
 } ERROR_T;
 
 #include "error_map.h"
@@ -111,6 +113,7 @@ I equ(L x, L y);
 
 /* interning of atom names (Lisp symbols), returns a unique NaN-boxed ATOM */
 L atom(const char *s);
+L macro(L v,L x);
 
 /* construct pair (x . y) returns a NaN-boxed CONS */
 L cons(L x, L y);
@@ -179,6 +182,7 @@ L f_newline(L t, L *e);
 
 /* evaluates a list of exprs and returns the last value */
 L f_begin(L t, L *e);
+L f_macro(L t, L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -255,4 +259,6 @@ struct {
   {"newline", f_newline, 0},
   {"begin", f_begin, 0},
   {"letrec*", f_letreca, 0},
+  {"macro", f_macro, 0},
+  
   {0}};
