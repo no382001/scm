@@ -217,10 +217,15 @@ L f_macro(L t, L *e){
 }
 
 void f_load_close_streams(){
-  dup2(original_stdin, STDIN_FILENO);
-  close(original_stdin);
-  fclose(file);
-  file = 0;
+
+  fclose(openfiles[ofindex]);
+  openfiles[ofindex--] = 0;
+  
+  if (ofindex == -1){ // load back the og stdin
+    dup2(original_stdin, STDIN_FILENO);
+    close(original_stdin);
+  }
+
 }
 
 L f_load(L t, L *e) {
@@ -231,22 +236,34 @@ L f_load(L t, L *e) {
       return err;
     }
 
+    if (ofindex == MAX_OPEN_FILES) {
+      g_err_state.type = LOAD_OPEN_FILE_LIMIT_REACHED;
+      g_err_state.box = x;
+      return err;
+    }
+
     const char *filename = A + ord(x);
-    file = fopen(filename, "r");
+    FILE* file = fopen(filename, "r");
     if (!file) {
       g_err_state.type = LOAD_CANNOT_OPEN_FILE;
       g_err_state.box = x;
       return err;
     }
+
     
     // redirect stdin directly from the file
-    original_stdin = dup(STDIN_FILENO);
+    if (ofindex == -1){ // save the of stdin
+      original_stdin = dup(STDIN_FILENO);
+    }
+
     if (dup2(fileno(file), STDIN_FILENO) == -1) {
       fclose(file);
       g_err_state.type = LOAD_FAILED_TO_REDIRECT_STDIN;
       g_err_state.box = x;
       return err;
     }
+
+    openfiles[++ofindex] = file; // pre-inc bc ofindex starts at -1
 
     return err;
 }
@@ -426,8 +443,8 @@ void look() {
   if (c == EOF) {
     // check if EOF is due to an actual end of file condition
     if (feof(stdin)) {
-      if (file) {  // check if we are reading from a redirected file
-        f_load_close_streams();  // close file and restore original stdin
+      if (ofindex >= 0) {  // check if we are reading from a redirected file
+        f_load_close_streams();  // close file and restore original stdin if there are no more files
         clearerr(stdin);  // clear EOF condition on stdin
         see = ' ';
         return;     // return to avoid setting see to EOF

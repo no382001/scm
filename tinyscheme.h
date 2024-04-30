@@ -62,7 +62,8 @@ typedef enum {
   NEWLINE_TAKES_NO_ARG,
   MACRO_EXPAND_BIND_FAILED,
   MACRO_EXPAND_BODY_EVAL_FAILED,
-  MACRO_EXPAND_EXECUTION_FAILED
+  MACRO_EXPAND_EXECUTION_FAILED,
+  LOAD_OPEN_FILE_LIMIT_REACHED
 } ERROR_T;
 
 #include "error_map.h"
@@ -80,8 +81,9 @@ static ERROR_STATE g_err_state = { NONE, 0, 0 };
 jmp_buf jb;
 
 /* used by f_load and f_load_close_streams  */
-int fseof = 0;
-FILE* file = 0;
+#define MAX_OPEN_FILES 10
+FILE* openfiles[10] = { 0 };
+int ofindex = -1;
 int original_stdin = 0;
 
 /* used in f_define to ignore longjump and instead roll the error back to the function */
@@ -172,8 +174,12 @@ L f_define(L t, L *e);
 void f_load_close_streams();
 
 /* load expressions from file into stdin 
-   after look() reads EOF give stdin back to user with f_load_close_streams()
-   and returns error (but no err status set) */
+   and returns error (but no err status set)
+   
+   saves the original stdin and redirects the open file to stdin,
+   uses a stack to keep trace of the open files,
+   once stdin reaches EOF the filestream closes,
+   and if there is no more files open the original stdin gets restored */
 L f_load(L t, L *e);
 
 /* prints an atom to stdout and returns error (but no err status set) */

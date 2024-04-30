@@ -1,1 +1,2 @@
 - there is no point having a separate string type, atom already does most of the job
+- file handling is done by switching input streams  (f_load), not ideal but does the job
