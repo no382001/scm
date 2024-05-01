@@ -216,28 +216,10 @@ L f_macro(L t, L *e){
   return macro(car(t),car(cdr(t))); 
 }
 
-void f_load_close_streams(){
-
-  fclose(openfiles[ofindex]);
-  openfiles[ofindex--] = 0;
-  
-  if (ofindex == -1){ // load back the og stdin
-    dup2(original_stdin, STDIN_FILENO);
-    close(original_stdin);
-  }
-
-}
-
 L f_load(L t, L *e) {
     L x = car(t);
     if (T(x) != ATOM) {
       g_err_state.type = LOAD_FILENAME_MUST_BE_ATOM;
-      g_err_state.box = x;
-      return err;
-    }
-
-    if (ofindex == MAX_OPEN_FILES) {
-      g_err_state.type = LOAD_OPEN_FILE_LIMIT_REACHED;
       g_err_state.box = x;
       return err;
     }
@@ -250,12 +232,6 @@ L f_load(L t, L *e) {
       return err;
     }
 
-    
-    // redirect stdin directly from the file
-    if (ofindex == -1){ // save the of stdin
-      original_stdin = dup(STDIN_FILENO);
-    }
-
     if (dup2(fileno(file), STDIN_FILENO) == -1) {
       fclose(file);
       g_err_state.type = LOAD_FAILED_TO_REDIRECT_STDIN;
@@ -263,13 +239,8 @@ L f_load(L t, L *e) {
       return err;
     }
 
-    openfiles[++ofindex] = file; // pre-inc bc ofindex starts at -1
-
-    print_and_reset_error();
-    gc();
-    printf("\n%u>", sp - hp / 8);
-    L res = eval(Read(), env);
-    return res;
+    fclose(file);
+    longjmp(jb,1);
 }
 
 L f_display(L t, L *e) {
@@ -465,14 +436,13 @@ void look() {
   if (c == EOF) {
     // check if EOF is due to an actual end of file condition
     if (feof(stdin)) {
-      if (ofindex >= 0) {  // check if we are reading from a redirected file
-        f_load_close_streams();  // close file and restore original stdin if there are no more files
+        dup2(original_stdin, STDIN_FILENO);
+        close(original_stdin);
         clearerr(stdin);  // clear EOF condition on stdin
         see = ' ';
         return;     // return to avoid setting see to EOF
       } else {
         exit(1);  // exit if EOF on the original stdin and not processing a file
-      }
     }
   }
   see = c;
@@ -618,7 +588,7 @@ void print_heap() {
 #ifndef FUNC_TEST
 
 int main() {
-
+  original_stdin = dup(STDIN_FILENO);
   int i;
   nil = box(NIL, 0);
   err = atom("ERR"); // display and load returns this too but does not set an error status

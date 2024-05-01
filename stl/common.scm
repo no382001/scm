@@ -1,7 +1,5 @@
 ; common.scm
-
-(define list (lambda args args))
-(define defun (macro (f v x) (list 'define f (list 'lambda v x))))
+(load stl/core.scm)
 
 (define null? not)
 (defun err? (x) (eq? x 'ERR))

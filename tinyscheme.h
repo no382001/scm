@@ -82,9 +82,7 @@ static ERROR_STATE g_err_state = { NONE, 0, 0 };
 jmp_buf jb;
 
 /* used by f_load and f_load_close_streams  */
-#define MAX_OPEN_FILES 10
-FILE* openfiles[10] = { 0 };
-int ofindex = -1;
+
 int original_stdin = 0;
 
 /* used in f_define to ignore longjump and instead roll the error back to the function */
