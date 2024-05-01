@@ -41,7 +41,7 @@
 I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
-I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, MACR = 0x7ffd;  
+I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, MACR = 0x7ffd, NOP = 0x7ffe;  
 
 /* errors */
 typedef enum {
@@ -85,6 +85,18 @@ static ERROR_STATE g_err_state = { NONE, 0, 0 };
 jmp_buf jb;
 
 /* used by f_load and f_load_close_streams  */
+#define PARSE_CTX_BUFF_SIZE 1024
+typedef struct {
+    FILE *file;
+    char buffer[PARSE_CTX_BUFF_SIZE];
+    int buf_pos;
+    int buf_end;
+    char see;
+} parsing_ctx;
+
+// main sets file to *stdin
+parsing_ctx default_ctx = { .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .see = ' ' };
+parsing_ctx *curr_ctx = &default_ctx;
 
 int original_stdin = 0;
 
@@ -98,10 +110,13 @@ L cell[N];
 L nil, tru, nop, err, env;
 
 #define PARSE_BUFFER 1024
-char buf[PARSE_BUFFER], see = ' ';
+char buf[PARSE_BUFFER];
 
 void print(L);
 int print_and_reset_error();
+
+void switch_ctx_to_file(FILE *file);
+void switch_ctx_to_stdin();
 
 /* NaN-boxing specific functions:
    box(t,i): returns a new NaN-boxed double with tag t and ordinal i

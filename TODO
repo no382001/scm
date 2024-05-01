@@ -9,5 +9,5 @@
 - let and let* args should be in a list to like in Scheme
 - arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - extend testlist to cover new primitive procedures and errors
-- implement set! and setq
+- implement set!
 - implement an include macro which uses set! or seq to set an include guard on each file loaded and cleans up after the initial procedure finishes

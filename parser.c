@@ -1,19 +1,42 @@
 #include "tinyscheme.h"
 
-L Read() {
-  if (see == EOF){
-    return nil;
-  }
-  return scan(), parse();
+void switch_ctx_to_file(FILE * file) {
+    curr_ctx = (parsing_ctx*)malloc(sizeof(parsing_ctx));
+    curr_ctx->file = file;
+    curr_ctx->buf_pos = 0;
+    curr_ctx->buf_end = 0;
+    curr_ctx->see = ' ';
+    look();  // init first char
 }
 
+void switch_ctx_to_stdin() {
+    if (curr_ctx != &default_ctx) {
+        if (curr_ctx->file) {
+            fclose(curr_ctx->file);
+        }
+        free(curr_ctx);
+    }
+
+    curr_ctx = &default_ctx;
+}
+
+L Read() {
+  if (curr_ctx->see == EOF){
+    return nil;
+  }
+  char c = scan();
+  if (c == EOF){
+    return err; // i cant think of nothing better rn
+  }
+  return parse();
+}
 
 void skip_multiline_comment() {
   get(); // consume the '|' after '#'
   while (1) {
-    if (see == '|') {
+    if (curr_ctx->see == '|') {
       get(); // consume the '|'
-      if (see == '#') {
+      if (curr_ctx->see == '#') {
         get(); // consume the '#', end of comment
         return;
       }
@@ -23,6 +46,7 @@ void skip_multiline_comment() {
   }
 }
 
+/** /
 void look() {
   int c = getchar();
   if (c == EOF) {
@@ -39,11 +63,39 @@ void look() {
   }
   see = c;
 }
+/ **/
 
-I seeing(char c) { return c == ' ' ? see > 0 && see <= c : see == c; }
+void look() {
+    if (curr_ctx->file == stdin) {
+        // default, read from stdin
+        int c = getchar();
+        curr_ctx->see = c == EOF ? EOF : (char)c;
+    } else if (curr_ctx->buf_pos < curr_ctx->buf_end) {
+        // advance the buffer
+        curr_ctx->see = curr_ctx->buffer[curr_ctx->buf_pos++];
+    } else if (curr_ctx->file != NULL) {
+        // attempt read
+        curr_ctx->buf_end = fread(curr_ctx->buffer, 1, sizeof(curr_ctx->buffer), curr_ctx->file);
+        curr_ctx->buf_pos = 0;
+
+        if (curr_ctx->buf_end > 0) {
+            // continue with new data
+            curr_ctx->see = curr_ctx->buffer[curr_ctx->buf_pos++];
+        } else {
+            if (feof(curr_ctx->file)){
+                curr_ctx->see = EOF;
+            }
+        }
+    } else {
+        curr_ctx->see = EOF; // no file?
+    }
+}
+
+
+I seeing(char c) { return c == ' ' ? curr_ctx->see > 0 && curr_ctx->see <= c : curr_ctx->see == c; }
 
 char get() {
-  char c = see;
+  char c = curr_ctx->see;
   look();
   return c;
 }
@@ -53,16 +105,19 @@ char scan() {
   while (seeing(' ')){
     look();
   }
+  if (curr_ctx->see == EOF){
+    return EOF;
+  }
   // multiline comments
-  if (see == '#') { // uhmm, this might have some consequences no?
+  if (curr_ctx->see == '#') {
     get();
-    if (see == '|') {
+    if (curr_ctx->see == '|') {
       skip_multiline_comment();
       return scan();
     }
   // single line comment
   } else if (seeing(';')) {
-    while (!seeing('\n') && see != EOF) {
+    while (!seeing('\n') && curr_ctx->see != EOF) {
       look();
     }
     return scan();
@@ -98,3 +153,4 @@ L parse() {
     return cons(atom("quote"), cons(Read(), nil));
   return sscanf(buf, "%lg%n", &n, &i) > 0 && !buf[i] ? n : atom(buf);
 }
+

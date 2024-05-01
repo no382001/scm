@@ -11,6 +11,8 @@ void print(L x) {
     printlist(x);
   else if (T(x) == CLOS)
     printf("{%u}", ord(x));
+  else if (T(x) == NOP)
+    return;
   else
     printf("%.10lg", x);
 }
@@ -29,4 +31,23 @@ void printlist(L t) {
     }
   }
   putchar(')');
+}
+
+void print_stack() {
+  printf("Stack contents:\n");
+  for (I i = sp; i < N; i++) {
+    printf("cell[%u] = ", i);
+    print(cell[i]);
+    printf("\n");
+  }
+}
+
+
+void print_heap() {
+  printf("Heap contents:\n");
+  for (I i = 0; i < hp; i++) {
+    printf("cell[%u] = ", i);
+    print(cell[i]);
+    printf("\n");
+  }
 }

@@ -222,32 +222,16 @@ int print_and_reset_error() {
   return 0;
 }
 
-void print_stack() {
-  printf("Stack contents:\n");
-  for (I i = sp; i < N; i++) {
-    printf("cell[%u] = ", i);
-    print(cell[i]);
-    printf("\n");
-  }
-}
-
-
-void print_heap() {
-  printf("Heap contents:\n");
-  for (I i = 0; i < hp; i++) {
-    printf("cell[%u] = ", i);
-    print(cell[i]);
-    printf("\n");
-  }
-}
-
 #ifndef FUNC_TEST
 
 int main() {
   original_stdin = dup(STDIN_FILENO);
+  default_ctx.file = stdin;
+
   int i;
   nil = box(NIL, 0);
   err = atom("ERR"); // display and load returns this too but does not set an error status
+  nop = box(NOP, 0);
   tru = atom("#t");
   env = pair(tru, tru, nil);
   for (i = 0; prim[i].s; ++i){
@@ -268,7 +252,7 @@ int main() {
     gc();
     printf("\n%u>", sp - hp / 8);
     L res = eval(Read(), env);
-    if (!equ(err,res)){
+    if (!equ(err,res) && !equ(err,nop)){
       print(res);
     }
   }

@@ -146,16 +146,27 @@ L f_load(L t, L *e) {
       g_err_state.box = x;
       return err;
     }
+    parsing_ctx old_context = *curr_ctx;
+    
+    printf("--> loading %s...",filename);
+    switch_ctx_to_file(file);
 
-    if (dup2(fileno(file), STDIN_FILENO) == -1) {
-      fclose(file);
-      g_err_state.type = LOAD_FAILED_TO_REDIRECT_STDIN;
-      g_err_state.box = x;
-      return err;
+    L result = nil;
+    while (curr_ctx->see != EOF) {
+        L exp = Read();
+        if (!equ(exp,err) && !equ(exp,nop)) {
+            result = eval(exp, env);
+            print(result); printf("\n");
+            
+        }
     }
-
-    fclose(file);
-    longjmp(jb,1);
+    
+    // close file and restore previous context
+    fclose(curr_ctx->file);
+    *curr_ctx = old_context;
+    printf("--> loaded %s...",filename);
+    
+    return nop;
 }
 
 L f_display(L t, L *e) {
