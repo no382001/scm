@@ -63,7 +63,8 @@ typedef enum {
   MACRO_EXPAND_BIND_FAILED,
   MACRO_EXPAND_BODY_EVAL_FAILED,
   MACRO_EXPAND_EXECUTION_FAILED,
-  LOAD_OPEN_FILE_LIMIT_REACHED
+  LOAD_OPEN_FILE_LIMIT_REACHED,
+  SETQ_VAR_N_FOUND
 } ERROR_T;
 
 #include "error_map.h"
@@ -189,6 +190,7 @@ L f_newline(L t, L *e);
 /* evaluates a list of exprs and returns the last value */
 L f_begin(L t, L *e);
 L f_macro(L t, L *e);
+L f_setq(L t,L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -266,5 +268,5 @@ struct {
   {"begin", f_begin, 0},
   {"letrec*", f_letreca, 0},
   {"macro", f_macro, 0},
-  
+  {"setq", f_setq, 0},
   {0}};

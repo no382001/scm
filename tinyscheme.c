@@ -265,7 +265,11 @@ L f_load(L t, L *e) {
 
     openfiles[++ofindex] = file; // pre-inc bc ofindex starts at -1
 
-    return err;
+    print_and_reset_error();
+    gc();
+    printf("\n%u>", sp - hp / 8);
+    L res = eval(Read(), env);
+    return res;
 }
 
 L f_display(L t, L *e) {
@@ -337,6 +341,24 @@ L expand(L f,L t,L e) {
 
   return eval2_r;
 }
+
+L f_setq(L t,L *e) {
+  L v = car(t);
+  L x = eval(car(cdr(t)),*e);
+  L env = *e;
+  while (T(env) == CONS && !equ(v, car(car(env)))){
+    env = cdr(env);
+  }
+  if (T(env) == CONS){
+    cell[ord(car(env))] = x;
+    return v;
+  } else {
+    g_err_state.type = SETQ_VAR_N_FOUND;
+    g_err_state.box = v;
+    return err;
+  }
+}
+
 
 L eval(L x, L e) {
 
@@ -554,7 +576,12 @@ void print(L x) {
     printf("%.10lg", x);
 }
 
-void gc() { sp = ord(env); }
+/* find the max heap reference among the used ATOM-tagged cells and adjust hp accordingly */
+void gc() {
+  I i = sp = ord(env);
+  for (hp = 0; i < N; ++i) if (T(cell[i]) == ATOM && ord(cell[i]) > hp) hp = ord(cell[i]);
+    hp += strlen(A+hp)+1;
+}
 
 int print_and_reset_error() {
   if (g_err_state.type) {
@@ -567,6 +594,25 @@ int print_and_reset_error() {
     return 1;
   }
   return 0;
+}
+
+void print_stack() {
+  printf("Stack contents:\n");
+  for (I i = sp; i < N; i++) {
+    printf("cell[%u] = ", i);
+    print(cell[i]);
+    printf("\n");
+  }
+}
+
+
+void print_heap() {
+  printf("Heap contents:\n");
+  for (I i = 0; i < hp; i++) {
+    printf("cell[%u] = ", i);
+    print(cell[i]);
+    printf("\n");
+  }
 }
 
 #ifndef FUNC_TEST
