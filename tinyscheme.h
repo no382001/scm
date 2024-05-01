@@ -7,6 +7,9 @@
 #include <dirent.h>
 #include <string.h>
 
+#ifndef TINYSCHEME
+#define TINYSCHEME
+
 /* we only need two types to implement a Lisp interpreter:
         I    unsigned integer (either 16 bit, 32 bit or 64 bit unsigned)
         L    Lisp expression (double with NaN boxing)
@@ -268,3 +271,5 @@ struct {
   {"macro", f_macro, 0},
   {"setq", f_setq, 0},
   {0}};
+
+#endif
