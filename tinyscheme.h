@@ -70,7 +70,7 @@ typedef enum {
   SETQ_VAR_N_FOUND
 } ERROR_T;
 
-#include "error_map.h"
+#include "util/error_map.h"
 
 typedef struct {
   ERROR_T type;

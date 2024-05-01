@@ -1,4 +1,3 @@
-- split into multiple files?
 - foreign function interface?
 - refactor define
  - to implement overwriting, id probably need to redesign how the stack works

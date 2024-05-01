@@ -28,7 +28,7 @@ enum_name = "ERROR_T"
 
 try:
     enum_block = extract_enum_from_file(c_file_path, enum_name)
-    generate_enum_map("error_map", enum_name, enum_block)
+    generate_enum_map("util/error_map", enum_name, enum_block)
     print(f"header file 'error_map.h' has been generated successfully.")
 except ValueError as e:
     print(e)
