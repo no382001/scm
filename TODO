@@ -1,13 +1,29 @@
-- foreign function interface?
-- refactor define
- - to implement overwriting, id probably need to redesign how the stack works
-- add all functions from the tinylisp doc
-- memoryleaks?
-- add random exit messages like in mit-scheme
-- mce? and try to enforce type safety?
-- add an evaluation trace
+SAFETY:
+- check for memoryleaks?
+
+REFACTOR:
+- do something with the non-local jumps, they fuck up loading
 - let and let* args should be in a list to like in Scheme
-- arithmetic functions do not do typechecks, ill formed expressions could fall down there
+- refactor define
+    - to implement overwriting (same as the setq impl?)
+
+TESTS:
+- fix tests (all of them fail since i dont use stdin)
 - extend testlist to cover new primitive procedures and errors
-- implement set!
-- implement an include macro which uses set! or seq to set an include guard on each file loaded and cleans up after the initial procedure finishes
+- arithmetic functions do not do typechecks, ill formed expressions could fall down there
+
+IMPLEMENT:
+- add all functions from the tinylisp doc
+    - implement set! from docs
+- add quasiquote
+- add an evaluation trace
+
+STANDARD LIBRARY:
+- an include macro which uses set! or seq to set an include guard on each file loaded and cleans up after the initial procedure finishes
+- add an MCE (this maybe requires some primitives that arent implemented yet, and a different gc and evaluation strategy)
+    - typed scheme
+
+
+GOOD TO HAVE:
+- foreign function interface
+- add random exit messages like in mit-scheme
