@@ -36,9 +36,11 @@ void printlist(L t) {
 void print_stack() {
   printf("Stack contents:\n");
   for (I i = sp; i < N; i++) {
-    printf("cell[%u] = ", i);
-    print(cell[i]);
-    printf("\n");
+    if (cell[i]){
+      printf("cell[%u] = ", i);
+      print(cell[i]);
+      printf("\n");
+    }
   }
 }
 
@@ -46,8 +48,10 @@ void print_stack() {
 void print_heap() {
   printf("Heap contents:\n");
   for (I i = 0; i < hp; i++) {
-    printf("cell[%u] = ", i);
-    print(cell[i]);
-    printf("\n");
+    if (cell[i]){
+      printf("cell[%u] = ", i);
+      print(cell[i]);
+      printf("\n");
+    }
   }
 }

@@ -1,5 +1,7 @@
 SAFETY:
 - check for memoryleaks?
+- implement trampolining to escape the blown callstack in an infinite loop
+- implement a ringbuffer stack so it can run forever (see RingLisp, this will bring its own challenges) 
 
 REFACTOR/FIX:
 - do something with the non-local jumps, they fuck up loading
@@ -16,8 +18,10 @@ TESTS:
 
 IMPLEMENT:
 - arithmetic functions do not do typechecks, ill formed expressions could fall down there
+- / with 1 arg should do (/ 1 arg)
 - add all functions from the tinylisp doc
     - implement set! setcar! setcdr! from docs
+    - read
 - add quasiquote
 - strings would be okay to have, even tho only display would profit from it directly
 

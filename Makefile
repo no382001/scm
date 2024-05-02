@@ -1,6 +1,6 @@
 CC=gcc
 CXX=g++
-CFLAGS=-g -std=gnu99 -Wall -Werror -pedantic
+CFLAGS=-g -std=gnu99 -Wall -Werror -pedantic -O0
 CXXFLAGS=-g
 LDFLAGS=-lgtest -lgtest_main -pthread
 LCOVFLAGS=-fprofile-arcs -ftest-coverage 

@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <string.h>
+#include <errno.h>
 
 #ifndef TINYSCHEME
 #define TINYSCHEME
@@ -214,6 +215,8 @@ L f_newline(L t, L *e);
 L f_begin(L t, L *e);
 L f_macro(L t, L *e);
 L f_setq(L t,L *e);
+L f_read(L t,L *e);
+L f_gc(L x, L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -292,7 +295,9 @@ struct {
   {"letrec*", f_letreca, 0},
   {"macro", f_macro, 0},
   {"setq", f_setq, 0},
-  {"trace", f_trace, 0},
+  {"__trace", f_trace, 0},
+  {"__gc", f_gc, 0},
+  {"read", f_read, 0},
   {0}};
 
 #endif

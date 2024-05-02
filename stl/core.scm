@@ -1,4 +1,5 @@
 ; core.scm
+
 (define list (lambda args args))
 (define defun (macro (f v x) (list 'define f (list 'lambda v x))))
 
@@ -52,8 +53,8 @@
                     (result lst)
                     (loop (update i step) (cons (body i) lst)))))
     (loop i init-list)))
-
 #|
+
 (include stl/list.scm)
 (do-collect 0 1 '()   ; start from 0, empty initial list
   (lambda (i) i)                  ; body: the number itself
@@ -61,3 +62,15 @@
   (lambda (i step) (+ i step))    ; update: increment i by step
   (lambda (lst) (reverse lst)))  ; result: return the reversed list to maintain order
 |#
+
+(define repl (lambda ()
+    (begin
+        (newline)
+        (display '-->)
+        (display
+            (eval
+                (begin
+                    (define repl-counter (+ 1 repl-counter)
+                    repl-counter))))
+        (repl))))
+;(repl)

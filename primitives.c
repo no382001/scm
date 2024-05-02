@@ -142,6 +142,8 @@ L f_load(L t, L *e) {
     const char *filename = A + ord(x);
     FILE* file = fopen(filename, "r");
     if (!file) {
+      printf("Failed to open file: errno = %d\n", errno);
+      printf("Error message: %s\n", strerror(errno));
       g_err_state.type = LOAD_CANNOT_OPEN_FILE;
       g_err_state.box = x;
       return err;
@@ -180,9 +182,8 @@ L f_display(L t, L *e) {
     g_err_state.box = r;
     return err;
   }
-
   print(r);
-  return nil;
+  return nop; // might fuck up the include macro
 }
 
 L f_newline(L t, L *e) {
@@ -192,7 +193,7 @@ L f_newline(L t, L *e) {
     return err;
   }
   putchar('\n');
-  return nil;
+  return nop; // might fuck up the include macro
 }
 
 L f_begin(L t, L *e) {
@@ -237,4 +238,21 @@ L f_trace(L x, L *e) {
   stepping = (int)num(s);
 
   longjmp(jb,1);
+}
+
+L f_read(L t,L *e) {
+  L x;
+  
+  char c = curr_ctx->see;
+  curr_ctx->see = ' ';
+  
+  x = Read();
+  curr_ctx->see = c;
+  
+  return x;
+}
+
+L f_gc(L x, L *e) {
+  gc();
+  return nop;
 }

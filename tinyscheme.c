@@ -121,6 +121,8 @@ L eval(L x, L e) {
   L in = x;
   trace_depth++;
   L result = step(x,e);
+  print_heap();
+  print_stack();
   if (trace){
     printf("[TRACE] %d\t",trace_depth); print(in); printf(" --> "); print(result);
     if (stepping) {
@@ -131,6 +133,8 @@ L eval(L x, L e) {
     }
   }
   trace_depth--;
+  print_heap();
+  print_stack();
 
   return result;
 }
