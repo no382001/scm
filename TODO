@@ -1,28 +1,30 @@
 SAFETY:
 - check for memoryleaks?
 
-REFACTOR:
+REFACTOR/FIX:
 - do something with the non-local jumps, they fuck up loading
 - let and let* args should be in a list to like in Scheme
 - refactor define
     - to implement overwriting (same as the setq impl?)
+- load does not care where the file is, it always takes absolute path to the binary
+- #t cant be parsed for some reason
+- trace or stepping breaks input and falls into inf () when include macro ends
 
 TESTS:
 - fix tests (all of them fail since i dont use stdin)
 - extend testlist to cover new primitive procedures and errors
-- arithmetic functions do not do typechecks, ill formed expressions could fall down there
 
 IMPLEMENT:
+- arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - add all functions from the tinylisp doc
-    - implement set! from docs
+    - implement set! setcar! setcdr! from docs
 - add quasiquote
-- add an evaluation trace
+- strings would be okay to have, even tho only display would profit from it directly
 
 STANDARD LIBRARY:
-- an include macro which uses set! or seq to set an include guard on each file loaded and cleans up after the initial procedure finishes
+- include macro could be improved
 - add an MCE (this maybe requires some primitives that arent implemented yet, and a different gc and evaluation strategy)
     - typed scheme
-
 
 GOOD TO HAVE:
 - foreign function interface

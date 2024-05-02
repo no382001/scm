@@ -1,5 +1,4 @@
 ; common.scm
-(load stl/core.scm)
 
 (define null? not)
 (defun err? (x) (eq? x 'ERR))

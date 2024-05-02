@@ -56,7 +56,7 @@ typedef enum {
   APPLY_F_IS_N_CLOS_OR_PRIM,
   TYPE_MISMATCH,
   FUNCTION_DEF_IS_NOT_LAMBDA,
-  LOAD_FILENAME_MUST_BE_ATOM,
+  LOAD_FILENAME_MUST_BE_QUOTED,
   LOAD_CANNOT_OPEN_FILE,
   LOAD_FAILED_TO_REDIRECT_STDIN,
   DISPLAY_NO_ARG,
@@ -102,6 +102,13 @@ int original_stdin = 0;
 
 /* used in f_define to ignore longjump and instead roll the error back to the function */
 short define_underway = 0;
+
+/* trace things */
+int trace_depth = 0;
+char trace = 0;
+char stepping = 0;
+L step(L x, L e);
+L f_trace(L x, L *e);
 
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
 L cell[N];
@@ -285,6 +292,7 @@ struct {
   {"letrec*", f_letreca, 0},
   {"macro", f_macro, 0},
   {"setq", f_setq, 0},
+  {"trace", f_trace, 0},
   {0}};
 
 #endif

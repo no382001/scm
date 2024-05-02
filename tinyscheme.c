@@ -118,6 +118,24 @@ L expand(L f,L t,L e) {
 }
 
 L eval(L x, L e) {
+  L in = x;
+  trace_depth++;
+  L result = step(x,e);
+  if (trace){
+    printf("[TRACE] %d\t",trace_depth); print(in); printf(" --> "); print(result);
+    if (stepping) {
+      while (getchar() >= ' ')
+        continue;
+    } else {
+      putchar('\n');
+    }
+  }
+  trace_depth--;
+
+  return result;
+}
+
+L step(L x, L e) {
 
   L f, v, d;
   while (1) {

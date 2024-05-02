@@ -132,10 +132,10 @@ L f_macro(L t, L *e){
 }
 
 L f_load(L t, L *e) {
-    L x = car(t);
-    if (T(x) != ATOM) {
-      g_err_state.type = LOAD_FILENAME_MUST_BE_ATOM;
-      g_err_state.box = x;
+    L x = eval(car(t), *e);
+    if (equ(x,err)) {
+      g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
+      g_err_state.box = t;
       return err;
     }
 
@@ -148,7 +148,7 @@ L f_load(L t, L *e) {
     }
     parsing_ctx old_context = *curr_ctx;
     
-    printf("--> loading %s...",filename);
+    //printf("--> loading %s...\n",filename);
     switch_ctx_to_file(file);
 
     L result = nil;
@@ -157,16 +157,15 @@ L f_load(L t, L *e) {
         if (!equ(exp,err) && !equ(exp,nop)) {
             result = eval(exp, env);
             print(result); printf("\n");
-            
         }
     }
     
     // close file and restore previous context
     fclose(curr_ctx->file);
     *curr_ctx = old_context;
-    printf("--> loaded %s...",filename);
+    //printf("--> loaded %s...",filename);
     
-    return nop;
+    return nil;
 }
 
 L f_display(L t, L *e) {
@@ -183,7 +182,7 @@ L f_display(L t, L *e) {
   }
 
   print(r);
-  return err;
+  return nil;
 }
 
 L f_newline(L t, L *e) {
@@ -193,7 +192,7 @@ L f_newline(L t, L *e) {
     return err;
   }
   putchar('\n');
-  return err;
+  return nil;
 }
 
 L f_begin(L t, L *e) {
@@ -225,4 +224,17 @@ L f_setq(L t,L *e) {
     g_err_state.box = v;
     return err;
   }
+}
+
+L f_trace(L x, L *e) {
+  L t = car(x);
+  L s = car(cdr(x));
+
+  if (((int)num(t) != 0 && (int)num(t) != 1) || ((int)num(s) != 0 && (int)num(s) != 1))
+    return err;
+
+  trace = (int)num(t);
+  stepping = (int)num(s);
+
+  longjmp(jb,1);
 }
