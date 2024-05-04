@@ -1,0 +1,5 @@
+https://stackoverflow.com/questions/5986058/how-does-one-implement-a-stackless-interpreted-language
+https://stackoverflow.com/questions/189725/what-is-a-trampoline-function
+https://stackoverflow.com/questions/12995667/flat-evaluation-of-lisp-s-expressions
+https://github.com/eiselekd/MinimalLisp/blob/master/flat1.c
+https://www.irif.fr/~jch/cpc.pdf
