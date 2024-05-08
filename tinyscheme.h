@@ -101,6 +101,12 @@ parsing_ctx *curr_ctx = &default_ctx;
 
 int original_stdin = 0;
 
+// used by __rcsoc
+struct {
+  L x;
+  L e;
+} rcso_struct;
+
 /* used in f_define to ignore longjump and instead roll the error back to the function */
 short define_underway = 0;
 
@@ -218,6 +224,11 @@ L f_setq(L t,L *e);
 L f_read(L t,L *e);
 L f_gc(L x, L *e);
 
+// recursive-call-roll-back-call-stack
+// workaround that allows arbitrary depth evals (cs doesnt blow)
+// there is no way to exit currently, maybe with an error
+L f_rcrbcs(L x, L *e);
+
 void print(L x);
 L eval(L x, L e);
 void look();
@@ -297,6 +308,7 @@ struct {
   {"setq", f_setq, 0},
   {"__trace", f_trace, 0},
   {"__gc", f_gc, 0},
+  {"__rcrbcs", f_rcrbcs, 0},
   {"read", f_read, 0},
   {0}};
 

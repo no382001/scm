@@ -63,14 +63,19 @@
   (lambda (lst) (reverse lst)))  ; result: return the reversed list to maintain order
 |#
 
+(define repl-counter 0)
+
+;(__trace 1 1)
+
 (define repl (lambda ()
-    (begin
+    (__rcrbcs (begin
         (newline)
         (display '-->)
         (display
             (eval
                 (begin
-                    (define repl-counter (+ 1 repl-counter)
+                    (setq repl-counter (+ 1 repl-counter)
                     repl-counter))))
-        (repl))))
-;(repl)
+        (repl)))))
+
+(repl)

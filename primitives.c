@@ -256,3 +256,10 @@ L f_gc(L x, L *e) {
   gc();
   return nop;
 }
+
+L f_rcrbcs(L x, L *e) {
+  rcso_struct.x = x;
+  rcso_struct.e = *e;
+  trace_depth = 0;
+  longjmp(jb,2);
+}

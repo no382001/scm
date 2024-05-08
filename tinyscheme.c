@@ -121,8 +121,6 @@ L eval(L x, L e) {
   L in = x;
   trace_depth++;
   L result = step(x,e);
-  print_heap();
-  print_stack();
   if (trace){
     printf("[TRACE] %d\t",trace_depth); print(in); printf(" --> "); print(result);
     if (stepping) {
@@ -133,8 +131,6 @@ L eval(L x, L e) {
     }
   }
   trace_depth--;
-  print_heap();
-  print_stack();
 
   return result;
 }
@@ -267,13 +263,18 @@ int main() {
   printf(" |__|  |__||___|  // ____|/____  > \\___  >|__|_|  /__\n");
   printf("                \\/ \\/          \\/      \\/       \\/ \\/\n");
 
-  setjmp(jb);
+  int jmpres = setjmp(jb);
 
   while (1) {
     print_and_reset_error();
+    L res = nil;
     gc();
-    printf("\n%u>", sp - hp / 8);
-    L res = eval(Read(), env);
+    if (jmpres == 2) {
+      res = eval(rcso_struct.x, rcso_struct.e);
+    } else {
+      printf("\n%u>", sp - hp / 8);
+      res = eval(Read(), env);
+    }
     if (!equ(err,res) && !equ(err,nop)){
       print(res);
     }
