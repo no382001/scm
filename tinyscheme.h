@@ -42,7 +42,7 @@
 I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
-I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, MACR = 0x7ffd, NOP = 0x7ffe;  
+I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, MACR = 0x7ffd, NOP = 0x7ffe;
 
 /* errors */
 typedef enum {
@@ -68,7 +68,9 @@ typedef enum {
   MACRO_EXPAND_BODY_EVAL_FAILED,
   MACRO_EXPAND_EXECUTION_FAILED,
   LOAD_OPEN_FILE_LIMIT_REACHED,
-  SETQ_VAR_N_FOUND
+  SETQ_VAR_N_FOUND,
+  SETCAR_ARG_NOT_CONS,
+  SETCDR_ARG_NOT_CONS
 } ERROR_T;
 
 #include "util/error_map.h"
@@ -204,8 +206,7 @@ L f_lambda(L t, L *e);
 L f_define(L t, L *e);
 void f_load_close_streams();
 
-/* load expressions from file into stdin 
-   and returns error (but no err status set)
+/* load expressions from file into stdin
    
    saves the original stdin and redirects the open file to stdin,
    uses a stack to keep trace of the open files,
@@ -224,10 +225,20 @@ L f_setq(L t,L *e);
 L f_read(L t,L *e);
 L f_gc(L x, L *e);
 
+// (set-car! pair expr) sets the value of the car cell of a cons pair to expr as a side-effect
+L f_setcar(L t,L *e);
+
+// (set-cdr! pair expr) sets the value of the cdr cell of a cons pair to expr as a side-effect.
+L f_setcdr(L t,L *e);
+
 // recursive-call-roll-back-call-stack
 // workaround that allows arbitrary depth evals (cs doesnt blow)
 // there is no way to exit currently, maybe with an error
 L f_rcrbcs(L x, L *e);
+
+L f_atomq(L x,L *e);
+L f_numberq(L x, L *e);
+L f_primq(L x,L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -310,6 +321,11 @@ struct {
   {"__gc", f_gc, 0},
   {"__rcrbcs", f_rcrbcs, 0},
   {"read", f_read, 0},
+  {"set-car!", f_setcar, 0},
+  {"set-cdr!", f_setcar, 0},
+  {"atom?",f_atomq, 0},
+  {"prim?",f_primq, 0},
+  {"number?",f_numberq, 0},
   {0}};
 
 #endif

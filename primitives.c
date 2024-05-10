@@ -263,3 +263,44 @@ L f_rcrbcs(L x, L *e) {
   trace_depth = 0;
   longjmp(jb,2);
 }
+
+L f_setcar(L t,L *e) {
+   L p = car(t = evlis(t, *e));
+  if (T(p) != CONS) {
+    g_err_state.type = SETCAR_ARG_NOT_CONS;
+    g_err_state.box = t;
+    return err;
+  }
+  cell[ord(p) + 1] = car(cdr(t));
+  return car(t);
+}
+
+L f_setcdr(L t, L *e) {
+    L p = car(t = evlis(t, *e));
+    if (T(p) != CONS) {
+        g_err_state.type = SETCDR_ARG_NOT_CONS;
+        g_err_state.box = t;
+        return err;
+    }
+    cell[ord(p)] = car(cdr(t));
+    return car(t);
+}
+
+L f_atomq(L x, L *e) {
+  L r = car(x);
+  return T(r) == ATOM ? tru : nil;
+}
+
+L f_numberq(L x, L *e) {
+  x = car(x);
+  if (T(x) != NIL && T(x) != ATOM && T(x) != PRIM && T(x) != CONS && T(x) != MACR && T(x) != NOP) {
+    return tru;
+  } else {
+    return nil;
+  }
+}
+
+L f_primq(L x, L *e) {
+  L r = eval(car(x),*e);
+  return T(r) == PRIM ? tru : nil;
+}

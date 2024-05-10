@@ -4,13 +4,12 @@ SAFETY:
 - implement a ringbuffer stack so it can run forever (see RingLisp, this will bring its own challenges) 
 
 REFACTOR/FIX:
-- do something with the non-local jumps, they fuck up loading
-- let and let* args should be in a list to like in Scheme
+- do something with the non-local jumps, they fuck up loading (is this still relevant? try to remove eval form the inside of load)
+- let and let* args should be in a list like in Scheme
 - refactor define
-    - to implement overwriting (same as the setq impl?)
+    - to implement overwriting (same as the setq impl?) or impl undef and make assoc search from the top of the stack, to emulate some push pop
 - load does not care where the file is, it always takes absolute path to the binary
-- #t cant be parsed for some reason
-- trace or stepping breaks input and falls into inf () when include macro ends
+- #t cant be parsed for some reason (multiline comment?)
 
 TESTS:
 - fix tests (all of them fail since i dont use stdin)
@@ -19,16 +18,14 @@ TESTS:
 IMPLEMENT:
 - arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - / with 1 arg should do (/ 1 arg)
-- add all functions from the tinylisp doc
-    - implement set! setcar! setcdr! from docs
-    - read
 - add quasiquote
 - strings would be okay to have, even tho only display would profit from it directly
 
 STANDARD LIBRARY:
 - include macro could be improved
-- add an MCE (this maybe requires some primitives that arent implemented yet, and a different gc and evaluation strategy)
+- add an MCE (this maybe requires some primitives that arent implemented yet)
     - typed scheme
+- add an error macro that prints to the screen and returns err
 
 GOOD TO HAVE:
 - foreign function interface
