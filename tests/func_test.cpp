@@ -7,8 +7,8 @@ extern "C" {
     #include "../tinyscheme.c"
 };
 
-int orig_stdin;
-int input_pipe[2];
+
+parsing_ctx test_ctx = { .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .see = ' ' };
 
 struct LispTest : public ::testing::Test {
 
@@ -18,9 +18,7 @@ struct LispTest : public ::testing::Test {
         g_err_state.box = 0;
 
         nil = box(NIL, 0);
-
         err = atom("ERR");
-
         tru = atom("#t");
         env = pair(tru, tru, nil);
 
@@ -28,39 +26,30 @@ struct LispTest : public ::testing::Test {
             env = pair(atom(prim[i].s), box(PRIM, i), env);
         }
 
-        orig_stdin = dup(STDIN_FILENO);
-
-        // create a pipe to replace stdin
-        ASSERT_EQ(pipe(input_pipe), 0);
-
-        // replace stdin with the read end of the pipe
-        dup2(input_pipe[0], STDIN_FILENO);
-
-        // close the original read end of the pipe to avoid leaks
-        close(input_pipe[0]);
+        curr_ctx = &test_ctx;
     }
 
     void TearDown() override {
-        //c_char_index = 0;
         hp = 0;
         sp = N;
-
-        dup2(orig_stdin, STDIN_FILENO);
-        close(orig_stdin);
-
-        // close the write end of the pipe
-        close(input_pipe[1]);
     }
 
+
     L eval_string(const char* input) {
-        if(setjmp(jb) == 1){
+        if(setjmp(jb) == 1) {
             return 1;
         }
 
-        write(input_pipe[1], input, strlen(input));
-        
+        size_t input_len = strlen(input);
+
+        strncpy(curr_ctx->buffer, input, input_len);
+        curr_ctx->buf_pos = 0;
+        curr_ctx->buf_end = input_len;
+        curr_ctx->see = curr_ctx->buffer[curr_ctx->buf_pos++];
+
         return eval(Read(), env);
     }
+
 
     bool match_variable(L x, const char* str) {
         char debug_output[256];
@@ -298,6 +287,9 @@ TEST_F(LispTest, LessThan) {
 TEST_F(LispTest, Or) {
     auto r = eval_string("(or () #t)\n");
     EXPECT_EQ(match_variable(r,"#t"),true);
+    
+    r = eval_string("(or () ())\n");
+    EXPECT_EQ(match_variable(r,"()"),true);
 }
 
 TEST_F(LispTest, And) {
@@ -369,7 +361,9 @@ TEST_F(LispTest, FloatingPointUnderflow) {
     EXPECT_EQ(eval_string("(* 1e-308 1e-308)\n"), 0);
 }
 
-TEST_F(LispTest, ComplexFtpDebuf) {
-    eval_string("(load stl/math.lisp)\n");
-    ASSERT_NEAR(eval_string("(sin 1.0)\n"),0.8414709848,0.001);
+TEST_F(LispTest, ComplexFtpDebuf_DependsOnSTLFiles) {
+    // make sure that sin is defined, it uses defun now
+    eval_string("(load 'stl/math.scm)");
+
+    ASSERT_NEAR(eval_string("(sin 1.0)"),0.8414709848,0.00001);
 }

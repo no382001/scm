@@ -101,7 +101,6 @@ typedef struct {
 parsing_ctx default_ctx = { .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .see = ' ' };
 parsing_ctx *curr_ctx = &default_ctx;
 
-int original_stdin = 0;
 
 // used by __rcsoc
 struct {

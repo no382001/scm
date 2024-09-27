@@ -243,7 +243,6 @@ int print_and_reset_error() {
 #ifndef FUNC_TEST
 
 int main() {
-  original_stdin = dup(STDIN_FILENO);
   default_ctx.file = stdin;
 
   int i;

@@ -1,4 +1,5 @@
 ; math.scm
+(load 'stl/core.scm)
 
 (define abs
     (lambda (n)

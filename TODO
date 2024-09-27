@@ -1,25 +1,28 @@
+before writing a vm, address [blocker]s and it would be ideal if [feature]s were done
+
 SAFETY:
 - check for memoryleaks?
-- implement trampolining to escape the blown callstack in an infinite loop
-- implement a ringbuffer stack so it can run forever (see RingLisp, this will bring its own challenges) 
+[out] - implement trampolining to escape the blown callstack in an infinite loop
+[out] - implement a ringbuffer stack so it can run forever (see RingLisp, this will bring its own challenges) 
 
 REFACTOR/FIX:
 - do something with the non-local jumps, they fuck up loading (is this still relevant? try to remove eval form the inside of load)
-- let and let* args should be in a list like in Scheme
-- refactor define
+[feature] - let and let* args should be in a list like in Scheme
+[blocker] - refactor define
     - to implement overwriting (same as the setq impl?) or impl undef and make assoc search from the top of the stack, to emulate some push pop
 - load does not care where the file is, it always takes absolute path to the binary
-- #t cant be parsed for some reason (multiline comment?)
+[blocker/fixed] - #t cant be parsed for some reason (multiline comment?)
 
 TESTS:
-- fix tests (all of them fail since i dont use stdin)
+[blocker/fixed] - fix tests (all of them fail since i dont use stdin)
 - extend testlist to cover new primitive procedures and errors
 
 IMPLEMENT:
-- arithmetic functions do not do typechecks, ill formed expressions could fall down there
+[blocker] - arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - / with 1 arg should do (/ 1 arg)
-- add quasiquote
-- strings would be okay to have, even tho only display would profit from it directly
+[feature] - add quasiquote
+[feature] - strings would be okay to have, even tho only display would profit from it directly
+[feature] - vectors
 
 STANDARD LIBRARY:
 - include macro could be improved

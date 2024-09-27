@@ -64,7 +64,7 @@ void look() {
   see = c;
 }
 / **/
-
+// read the next char
 void look() {
     if (curr_ctx->file == stdin) {
         // default, read from stdin
@@ -91,9 +91,10 @@ void look() {
     }
 }
 
-
+// what are we looking at?
 I seeing(char c) { return c == ' ' ? curr_ctx->see > 0 && curr_ctx->see <= c : curr_ctx->see == c; }
 
+// get current and advance
 char get() {
   char c = curr_ctx->see;
   look();
@@ -108,12 +109,15 @@ char scan() {
   if (curr_ctx->see == EOF){
     return EOF;
   }
-  // multiline comments
-  if (curr_ctx->see == '#') {
+  // multiline comments and #t | #f
+  if (seeing('#')) {
     get();
-    if (curr_ctx->see == '|') {
+    if (seeing('|')) {
       skip_multiline_comment();
       return scan();
+    } else {
+      buf[i++] = '#';
+      buf[i++] = get(); // this is not ideal, anything can be here
     }
   // single line comment
   } else if (seeing(';')) {
@@ -147,6 +151,20 @@ L list() {
 L parse() {
   L n;
   int i;
+  if ((*buf == '#')){
+    switch (buf[1])
+    {
+    case 't':
+      return tru;
+      break;
+    case 'f':
+      return nil;
+      break;
+    default:
+      return err;
+      break;
+    }
+  }
   if (*buf == '(')
     return list();
   if (*buf == '\'')
