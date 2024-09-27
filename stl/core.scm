@@ -3,15 +3,12 @@
 (define list (lambda args args))
 (define defun (macro (f v x) (list 'define f (list 'lambda v x))))
 
-;returns the rest of list 't' if 'x' is a member
-;return () if it is not
-(define member
-    (lambda (x t)
+(defun member (x t)
         (if t
             (if (eq? x (car t))
-                t
+                #t
                 (member x (cdr t)))
-            t)))
+            #f))
 
 ; loads files if they havent been loaded before
 (define __files-included '())
@@ -33,18 +30,5 @@
                 (newline)))))
     (include-impl f)))
 
-
-;(__trace 1 1)
-(define repl-counter 0)
-(define repl (lambda ()
-    (__rcrbcs (begin
-        (newline)
-        (display '-->)
-        (display
-            (eval
-                (begin
-                    (setq repl-counter (+ 1 repl-counter)
-                    repl-counter))))
-        (repl)))))
-
-;(repl)
+(include 'stl/common.scm)
+(include 'stl/list.scm)

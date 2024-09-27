@@ -115,7 +115,16 @@ L f_let(L t, L *e) {
 L f_lambda(L t, L *e) { return closure(car(t), car(cdr(t)), *e); }
 
 L f_define(L t, L *e) {
-  define_underway++;
+  if (!equ(assoc(car(t), env), err)) {
+    printf("[warn] '%s' aliased in ", A + ord(car(t)));
+    print(t);
+    printf("\n");
+  }
+  g_err_state.type =
+      NONE; // clear this, i should really refactor this whole eval thing
+  g_err_state.box = nil;
+
+  define_underway++; // FIX: get rid of this shit
   L res = eval(car(cdr(t)), *e);
   define_underway--;
 
@@ -125,6 +134,7 @@ L f_define(L t, L *e) {
     g_err_state.proc = t;
     return res;
   }
+
   env = pair(car(t), res, env);
   // print(t);
   return car(t);
@@ -154,8 +164,12 @@ L f_load(L t, L *e) {
   // printf("--> loading %s...\n",filename);
   switch_ctx_to_file(file);
 
+  // FIX: i dont like this at all why cant we do this in the main loop?
+  // had some problems ctx switching and clearing faults before... so this will
+  // do for now
   L result = nil;
   while (curr_ctx->see != EOF) {
+    print_and_reset_error();
     L exp = Read();
     if (!equ(exp, err) && !equ(exp, nop)) {
       result = eval(exp, env);

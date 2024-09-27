@@ -1,8 +1,7 @@
-; common.scm
+; included by core.scm
 
 (define null? not)
 (defun err? (x) (eq? x 'ERR))
-(defun number? (x) (eq? (* 0 x) 0))
 (defun pair? (x) (not (err? (cdr x))))
 (defun symbol? (x)
     (and
@@ -10,10 +9,6 @@
         (not (err? x))
         (not (number? x))
         (not (pair? x))))
-(defun atom? (x)
-    (or
-        (not x)
-        (symbol? x)))
 (defun list? (x)
     (if (not x)
         #t
@@ -35,5 +30,3 @@
 (defun = (x y) (eq? (- x y) 0))
 (defun cadr (x) (car (cdr x)))
 (defun caddr (x) (car (cdr (cdr x))))
-
-;(define begin (lambda (x . args) (if args (begin . args) x)))

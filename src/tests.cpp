@@ -36,7 +36,7 @@ struct LispTest : public ::testing::Test {
 
   L eval_string(const char *input) {
     if (setjmp(jb) == 1) {
-      return 1;
+      return 1; // FIX: im not sure this is good here
     }
 
     size_t input_len = strlen(input);

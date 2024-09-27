@@ -1,14 +1,10 @@
-before writing a vm, address [blocker]s and it would be ideal if [feature]s were done
-
 SAFETY:
 - check for memoryleaks?
-[out] - implement trampolining to escape the blown callstack in an infinite loop
-[out] - implement a ringbuffer stack so it can run forever (see RingLisp, this will bring its own challenges) 
 
 REFACTOR/FIX:
 - do something with the non-local jumps, they fuck up loading (is this still relevant? try to remove eval form the inside of load)
-[feature] - let and let* args should be in a list like in Scheme
-[blocker] - refactor define
+- let and let* args should be in a list like in Scheme
+- refactor define
     - to implement overwriting (same as the setq impl?) or impl undef and make assoc search from the top of the stack, to emulate some push pop
 - load does not care where the file is, it always takes absolute path to the binary
 
@@ -16,12 +12,13 @@ TESTS:
 - extend testlist to cover new primitive procedures and errors
 
 IMPLEMENT:
-[feature] - arithmetic functions do not do typechecks, ill formed expressions could fall down there
+- arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - / with 1 arg should do (/ 1 arg)
-[feature] - add quasiquote
-[feature] - strings would be okay to have, even tho only display would profit from it directly
+- add quasiquote
+- strings would be okay to have, even tho only display would profit from it directly
 
 STANDARD LIBRARY:
+- revise the std
 - include macro could be improved
 - add an MCE (this maybe requires some primitives that arent implemented yet)
     - typed scheme
@@ -35,3 +32,14 @@ GOOD TO HAVE:
 NOTES:
 - there is no point having a separate string type, atom already does most of the job
 - non-local jumps are used for error handling, right now if something fails in (load filename) the file wont get closed 
+
+
+TYPES:
+- built in or in an mce?
+- refactor error handling, and atleast tell which file and line the problem arose, idk how messy it will get with macros
+
+(: fib (number_t -> number_t))
+(define (fib n)
+  (cond ((= 0 n) 1)
+        ((= 1 n) 1)
+        (else (+ (fib (- n 1)) (fib (- n 2)))))) ; there is no [else] in [cond] rn and it would look better with a [ branch ]
