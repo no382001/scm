@@ -20,7 +20,6 @@ IMPLEMENT:
 - / with 1 arg should do (/ 1 arg)
 [feature] - add quasiquote
 [feature] - strings would be okay to have, even tho only display would profit from it directly
-[feature] - vectors
 
 STANDARD LIBRARY:
 - include macro could be improved

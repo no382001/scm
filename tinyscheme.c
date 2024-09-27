@@ -42,6 +42,70 @@ L cons(L x, L y) {
   return box(CONS, sp);
 }
 
+/*
+cell[20291] = 1
+cell[20292] = 1
+cell[20293] = 2
+cell[20294] = ()
+-> (vector 1 1)
+*/
+L vector(I size) {
+  L vec = box(VECTOR, sp);
+  cell[--sp] = size;
+  for (I i = 0; i < size; ++i) {
+    cell[--sp] = nil;
+  }
+  return vec;
+}
+
+L vector_ref(L vec, I index) {
+  if (T(vec) != VECTOR) {
+    g_err_state.type = VECTOR_FN_NOT_A_VECTOR;
+    g_err_state.box = vec;
+    return err;
+  }
+
+  I start = ord(vec);
+  I size = cell[start - 1];
+
+  if (index >= size || index < 0) {
+    g_err_state.type = VECTOR_FN_INDEX_OOB;
+    return err;
+  }
+
+  return cell[start - 1 - index - 1];
+}
+
+L vector_set(L vec, I index, L value) {
+  if (T(vec) != VECTOR) {
+    g_err_state.type = VECTOR_FN_NOT_A_VECTOR;
+    g_err_state.box = vec;
+    return err;
+  }
+
+  I start = ord(vec);
+  I size = cell[start - 1];
+
+  if (index >= size || index < 0) {
+    g_err_state.type = VECTOR_FN_INDEX_OOB;
+    return err;
+  }
+
+  cell[start - 1 - index - 1] = value;
+
+  return vec;
+}
+
+L vector_length(L vec) {
+  if (T(vec) != VECTOR) {
+    g_err_state.type = VECTOR_FN_NOT_A_VECTOR;
+    g_err_state.box = vec;
+    return err;
+  }
+
+  return num(cell[ord(vec) - 1]);
+}
+
 L car(L p) {
   if (T(p) == CONS || T(p) == CLOS || T(p) == MACR) {
     return cell[ord(p) + 1];
@@ -258,7 +322,7 @@ int print_and_reset_error() {
 
 #ifndef FUNC_TEST
 
-int main() {
+int main(int argc, char **argv) {
   default_ctx.file = stdin;
 
   int i;

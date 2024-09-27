@@ -42,7 +42,7 @@ I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
 I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc,
-  MACR = 0x7ffd, NOP = 0x7ffe;
+  MACR = 0x7ffd, NOP = 0x7ffe, VECTOR = 0x7fff;
 
 /* errors */
 typedef enum {
@@ -70,10 +70,13 @@ typedef enum {
   LOAD_OPEN_FILE_LIMIT_REACHED,
   SETQ_VAR_N_FOUND,
   SETCAR_ARG_NOT_CONS,
-  SETCDR_ARG_NOT_CONS
+  SETCDR_ARG_NOT_CONS,
+  VECTOR_FN_NOT_A_VECTOR,
+  VECTOR_FN_INDEX_OOB
 } ERROR_T;
 
 #include "util/error_map.h"
+#include "util/forward_declarations.h"
 
 typedef struct {
   ERROR_T type;
@@ -179,6 +182,10 @@ I let(L x);
 /* return a new list of evaluated Lisp expressions t in environment e */
 L evlis(L t, L e);
 
+L vector(I size);
+L vector_ref(L vec, I index);
+L vector_set(L vec, I index, L value);
+
 L f_eval(L t, L *e);
 L f_quote(L t, L *_);
 L f_cons(L t, L *e);
@@ -243,6 +250,10 @@ L f_rcrbcs(L x, L *e);
 L f_atomq(L x, L *e);
 L f_numberq(L x, L *e);
 L f_primq(L x, L *e);
+
+L f_vector(L t, L *e);
+L f_vector_ref(L t, L *e);
+L f_vector_set(L t, L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -328,6 +339,11 @@ struct {
             {"atom?", f_atomq, 0},
             {"prim?", f_primq, 0},
             {"number?", f_numberq, 0},
+            {"vector", f_vector, 0},
+            {"vector-ref", f_vector_ref, 0},
+            {"vector-set!", f_vector_set, 0},
+            {"vector-length", f_vector_length, 0},
+            {"__prims", f_list_primitives, 0},
             {0}};
 
 #endif

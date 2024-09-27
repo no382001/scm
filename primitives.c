@@ -308,3 +308,49 @@ L f_primq(L x, L *e) {
   L r = eval(car(x), *e);
   return T(r) == PRIM ? tru : nil;
 }
+
+L f_vector(L t, L *e) {
+  L evaluated_list = evlis(t, *e);
+  I size = 0;
+
+  for (L tmp = evaluated_list; !_not(tmp); tmp = cdr(tmp)) {
+    size++;
+  }
+
+  L vec = box(VECTOR, sp);
+  cell[--sp] = size;
+
+  for (I i = 0; i < size; ++i) {
+    cell[--sp] = car(evaluated_list);
+    evaluated_list = cdr(evaluated_list);
+  }
+  return vec;
+}
+
+L f_list_primitives(L t, L *e) {
+  L result = nil;
+
+  for (int i = 0; prim[i].s; ++i) {
+    result = cons(atom(prim[i].s), result);
+  }
+
+  return result;
+}
+
+L f_vector_ref(L t, L *e) {
+  L vec = car(evlis(t, *e));
+  L idx = car(cdr(evlis(t, *e)));
+  return vector_ref(vec, (I)num(idx));
+}
+
+L f_vector_set(L t, L *e) {
+  L vec = car(evlis(t, *e));
+  L idx = car(cdr(evlis(t, *e)));
+  L val = car(cdr(cdr(evlis(t, *e))));
+  return vector_set(vec, (I)num(idx), val);
+}
+
+L f_vector_length(L t, L *e) {
+  L vec = car(evlis(t, *e));
+  return vector_length(vec);
+}
