@@ -1,12 +1,11 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <setjmp.h>
-#include <unistd.h>
 #include <assert.h>
 #include <dirent.h>
-#include <string.h>
 #include <errno.h>
+#include <setjmp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #ifndef TINYSCHEME
 #define TINYSCHEME
@@ -35,14 +34,15 @@
 #define A (char *)cell
 
 /* number of cells for the shared stack and atom heap, increase N as desired */
-#define N 1024*20
+#define N 1024 * 20
 /* hp: heap pointer, A+hp with hp=0 points to the first atom string in cell[]
    sp: stack pointer, the stack starts at the top of cell[] with sp=N
    safety invariant: hp <= sp<<3 */
 I hp = 0, sp = N;
 
 /* atom, primitive, cons, closure and nil tags for NaN boxing */
-I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc, MACR = 0x7ffd, NOP = 0x7ffe;
+I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc,
+  MACR = 0x7ffd, NOP = 0x7ffe;
 
 /* errors */
 typedef enum {
@@ -81,8 +81,9 @@ typedef struct {
   L proc;
 } ERROR_STATE;
 
-/* global error state 'eval' checks if its none and jumps to main, overridden in multiple layers */
-static ERROR_STATE g_err_state = { NONE, 0, 0 };
+/* global error state 'eval' checks if its none and jumps to main, overridden in
+ * multiple layers */
+static ERROR_STATE g_err_state = {NONE, 0, 0};
 
 /* jump buffer used for exiting into main upon error */
 jmp_buf jb;
@@ -90,17 +91,17 @@ jmp_buf jb;
 /* used by f_load and f_load_close_streams  */
 #define PARSE_CTX_BUFF_SIZE 1024
 typedef struct {
-    FILE *file;
-    char buffer[PARSE_CTX_BUFF_SIZE];
-    int buf_pos;
-    int buf_end;
-    char see;
+  FILE *file;
+  char buffer[PARSE_CTX_BUFF_SIZE];
+  int buf_pos;
+  int buf_end;
+  char see;
 } parsing_ctx;
 
 // main sets file to *stdin
-parsing_ctx default_ctx = { .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .see = ' ' };
+parsing_ctx default_ctx = {
+    .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .see = ' '};
 parsing_ctx *curr_ctx = &default_ctx;
-
 
 // used by __rcsoc
 struct {
@@ -108,7 +109,8 @@ struct {
   L e;
 } rcso_struct;
 
-/* used in f_define to ignore longjump and instead roll the error back to the function */
+/* used in f_define to ignore longjump and instead roll the error back to the
+ * function */
 short define_underway = 0;
 
 /* trace things */
@@ -121,7 +123,8 @@ L f_trace(L x, L *e);
 /* cell[N] array of Lisp expressions, shared by the stack and atom heap */
 L cell[N];
 
-/* Lisp constant expressions () (nil), #t, ERR, and the global environment env */
+/* Lisp constant expressions () (nil), #t, ERR, and the global environment env
+ */
 L nil, tru, nop, err, env;
 
 #define PARSE_BUFFER 1024
@@ -147,7 +150,7 @@ I equ(L x, L y);
 
 /* interning of atom names (Lisp symbols), returns a unique NaN-boxed ATOM */
 L atom(const char *s);
-L macro(L v,L x);
+L macro(L v, L x);
 
 /* construct pair (x . y) returns a NaN-boxed CONS */
 L cons(L x, L y);
@@ -196,8 +199,8 @@ L f_and(L t, L *e);
 L f_cond(L t, L *e);
 L f_if(L t, L *e);
 L f_leta(L t, L *e);
-L f_letreca(L t,L *e);
-L f_let(L t,L *e);
+L f_letreca(L t, L *e);
+L f_let(L t, L *e);
 
 // incorrectly defined lambdas abort
 L f_lambda(L t, L *e);
@@ -206,7 +209,7 @@ L f_define(L t, L *e);
 void f_load_close_streams();
 
 /* load expressions from file into stdin
-   
+
    saves the original stdin and redirects the open file to stdin,
    uses a stack to keep trace of the open files,
    once stdin reaches EOF the filestream closes,
@@ -220,24 +223,26 @@ L f_newline(L t, L *e);
 /* evaluates a list of exprs and returns the last value */
 L f_begin(L t, L *e);
 L f_macro(L t, L *e);
-L f_setq(L t,L *e);
-L f_read(L t,L *e);
+L f_setq(L t, L *e);
+L f_read(L t, L *e);
 L f_gc(L x, L *e);
 
-// (set-car! pair expr) sets the value of the car cell of a cons pair to expr as a side-effect
-L f_setcar(L t,L *e);
+// (set-car! pair expr) sets the value of the car cell of a cons pair to expr as
+// a side-effect
+L f_setcar(L t, L *e);
 
-// (set-cdr! pair expr) sets the value of the cdr cell of a cons pair to expr as a side-effect.
-L f_setcdr(L t,L *e);
+// (set-cdr! pair expr) sets the value of the cdr cell of a cons pair to expr as
+// a side-effect.
+L f_setcdr(L t, L *e);
 
 // recursive-call-roll-back-call-stack
 // workaround that allows arbitrary depth evals (cs doesnt blow)
 // there is no way to exit currently, maybe with an error
 L f_rcrbcs(L x, L *e);
 
-L f_atomq(L x,L *e);
+L f_atomq(L x, L *e);
 L f_numberq(L x, L *e);
-L f_primq(L x,L *e);
+L f_primq(L x, L *e);
 
 void print(L x);
 L eval(L x, L e);
@@ -277,54 +282,52 @@ void gc();
          ...
          y)            sequentially binds each variable v1 to xi to evaluate y
    (lambda v x)        construct a closure
-   (define v x)        define a named value globally 
+   (define v x)        define a named value globally
    (load filename)     read a file into stdin */
-
 
 /* table of Lisp primitives, each has a name s and function pointer f */
 struct {
   const char *s;
-  L (*f)
+  L(*f)
   (L, L *);
   short t;
-} prim[] = {
-  {"eval", f_eval, 1},
-  {"quote", f_quote, 0},
-  {"cons", f_cons, 0},
-  {"car", f_car, 0},
-  {"cdr", f_cdr, 0},
-  {"+", f_add, 0},
-  {"-", f_sub, 0},
-  {"*", f_mul, 0},
-  {"/", f_div, 0},
-  {"int", f_int, 0},
-  {"<", f_lt, 0},
-  {"eq?", f_eq, 0},
-  {"or", f_or, 0},
-  {"and", f_and, 0},
-  {"not", f_not, 0},
-  {"cond", f_cond, 1},
-  {"if", f_if, 1},
-  {"let*", f_leta, 1},
-  {"let", f_let, 1},
-  {"lambda", f_lambda, 0},
-  {"define", f_define, 0},
-  {"load", f_load, 0},
-  {"display", f_display, 0},
-  {"newline", f_newline, 0},
-  {"begin", f_begin, 0},
-  {"letrec*", f_letreca, 0},
-  {"macro", f_macro, 0},
-  {"setq", f_setq, 0},
-  {"__trace", f_trace, 0},
-  {"__gc", f_gc, 0},
-  {"__rcrbcs", f_rcrbcs, 0},
-  {"read", f_read, 0},
-  {"set-car!", f_setcar, 0},
-  {"set-cdr!", f_setcar, 0},
-  {"atom?",f_atomq, 0},
-  {"prim?",f_primq, 0},
-  {"number?",f_numberq, 0},
-  {0}};
+} prim[] = {{"eval", f_eval, 1},
+            {"quote", f_quote, 0},
+            {"cons", f_cons, 0},
+            {"car", f_car, 0},
+            {"cdr", f_cdr, 0},
+            {"+", f_add, 0},
+            {"-", f_sub, 0},
+            {"*", f_mul, 0},
+            {"/", f_div, 0},
+            {"int", f_int, 0},
+            {"<", f_lt, 0},
+            {"eq?", f_eq, 0},
+            {"or", f_or, 0},
+            {"and", f_and, 0},
+            {"not", f_not, 0},
+            {"cond", f_cond, 1},
+            {"if", f_if, 1},
+            {"let*", f_leta, 1},
+            {"let", f_let, 1},
+            {"lambda", f_lambda, 0},
+            {"define", f_define, 0},
+            {"load", f_load, 0},
+            {"display", f_display, 0},
+            {"newline", f_newline, 0},
+            {"begin", f_begin, 0},
+            {"letrec*", f_letreca, 0},
+            {"macro", f_macro, 0},
+            {"setq", f_setq, 0},
+            {"__trace", f_trace, 0},
+            {"__gc", f_gc, 0},
+            {"__rcrbcs", f_rcrbcs, 0},
+            {"read", f_read, 0},
+            {"set-car!", f_setcar, 0},
+            {"set-cdr!", f_setcar, 0},
+            {"atom?", f_atomq, 0},
+            {"prim?", f_primq, 0},
+            {"number?", f_numberq, 0},
+            {0}};
 
 #endif

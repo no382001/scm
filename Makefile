@@ -9,6 +9,7 @@ RM=rm -f
 all: tinyscheme
 
 tinyscheme: gen_enum
+	find . -name "*.[ch]" -exec clang-format -i {} \; && \
 	$(CC) $(CFLAGS) tinyscheme.c -o tinyscheme
 
 test: gen_enum

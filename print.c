@@ -18,13 +18,11 @@ void print(L x) {
 }
 
 void printlist(L t) {
-  for (putchar('(');; putchar(' '))
-  {
+  for (putchar('(');; putchar(' ')) {
     print(car(t));
     if (_not(t = cdr(t)))
       break;
-    if (T(t) != CONS)
-    {
+    if (T(t) != CONS) {
       printf(" . ");
       print(t);
       break;
@@ -36,7 +34,7 @@ void printlist(L t) {
 void print_stack() {
   printf("Stack contents:\n");
   for (I i = sp; i < N; i++) {
-    if (cell[i]){
+    if (cell[i]) {
       printf("cell[%u] = ", i);
       print(cell[i]);
       printf("\n");
@@ -44,11 +42,10 @@ void print_stack() {
   }
 }
 
-
 void print_heap() {
   printf("Heap contents:\n");
   for (I i = 0; i < hp; i++) {
-    if (cell[i]){
+    if (cell[i]) {
       printf("cell[%u] = ", i);
       print(cell[i]);
       printf("\n");

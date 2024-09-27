@@ -11,14 +11,12 @@ REFACTOR/FIX:
 [blocker] - refactor define
     - to implement overwriting (same as the setq impl?) or impl undef and make assoc search from the top of the stack, to emulate some push pop
 - load does not care where the file is, it always takes absolute path to the binary
-[blocker/fixed] - #t cant be parsed for some reason (multiline comment?)
 
 TESTS:
-[blocker/fixed] - fix tests (all of them fail since i dont use stdin)
 - extend testlist to cover new primitive procedures and errors
 
 IMPLEMENT:
-[blocker] - arithmetic functions do not do typechecks, ill formed expressions could fall down there
+[feature] - arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - / with 1 arg should do (/ 1 arg)
 [feature] - add quasiquote
 [feature] - strings would be okay to have, even tho only display would profit from it directly
