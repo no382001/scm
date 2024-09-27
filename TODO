@@ -30,3 +30,8 @@ STANDARD LIBRARY:
 GOOD TO HAVE:
 - foreign function interface
 - add random exit messages like in mit-scheme
+
+
+NOTES:
+- there is no point having a separate string type, atom already does most of the job
+- non-local jumps are used for error handling, right now if something fails in (load filename) the file wont get closed 

@@ -4,7 +4,7 @@
 
 #define FUNC_TEST
 extern "C" {
-#include "../tinyscheme.c"
+#include "tinyscheme.c"
 };
 
 parsing_ctx test_ctx = {

@@ -75,8 +75,8 @@ typedef enum {
   VECTOR_FN_INDEX_OOB
 } ERROR_T;
 
-#include "util/error_map.h"
-#include "util/forward_declarations.h"
+#include "../util/error_map.h"
+#include "../util/forward_declarations.h"
 
 typedef struct {
   ERROR_T type;

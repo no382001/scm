@@ -9,13 +9,13 @@ RM=rm -f
 all: tinyscheme
 
 tinyscheme: gen format
-	$(CC) $(CFLAGS) tinyscheme.c -o tinyscheme
+	$(CC) $(CFLAGS) src/tinyscheme.c -o tinyscheme
 
 test: gen
-	$(CXX) $(CXXFLAGS) tests/func_test.cpp $(LDFLAGS) -o test && ./test
+	$(CXX) $(CXXFLAGS) src/tests.cpp $(LDFLAGS) -o test && ./test
 
 coverage: gen
-	$(CXX) $(CXXFLAGS) $(LCOVFLAGS) func_test.cpp $(LDFLAGS) -lgcov -o test_coverage \
+	$(CXX) $(CXXFLAGS) $(LCOVFLAGS) src/tests.cpp $(LDFLAGS) -lgcov -o test_coverage \
 	&& lcov -c -o coverage.info -d . && ./test_coverage && genhtml coverage.info -o cov_report
 
 gen:

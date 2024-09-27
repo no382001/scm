@@ -22,7 +22,7 @@ def generate_enum_map(header_name, enum_name, enum_block):
             file.write(f"    \"{value}\",\n")
         file.write("};\n\n#endif // ENUM_MAP_H\n")
 
-c_file_path = "tinyscheme.h"
+c_file_path = "src/tinyscheme.h"
 
 enum_name = "ERROR_T"
 
