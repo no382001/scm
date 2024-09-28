@@ -78,11 +78,13 @@ L f_and(L t, L *e) {
     t = cdr(t);
   return x;
 }
+
 L f_cond(L t, L *e) {
   while (T(t) != NIL && _not(eval(car(car(t)), *e)))
     t = cdr(t);
   return car(cdr(car(t)));
 }
+
 L f_if(L t, L *e) { return car(cdr(_not(eval(car(t), *e)) ? cdr(t) : t)); }
 
 /* (let* (var1 expr1 ) (var2 expr2 ) ... (varn exprn ) expr) */
@@ -309,7 +311,7 @@ L f_atomq(L x, L *e) {
 }
 
 L f_numberq(L x, L *e) {
-  x = car(x);
+  x = eval(car(x), *e);
   if (T(x) != NIL && T(x) != ATOM && T(x) != PRIM && T(x) != CONS &&
       T(x) != MACR && T(x) != NOP) {
     return tru;
@@ -367,4 +369,35 @@ L f_vector_set(L t, L *e) {
 L f_vector_length(L t, L *e) {
   L vec = car(evlis(t, *e));
   return vector_length(vec);
+}
+
+L f_unquote(L t, L *e) {
+  g_err_state.type = UNQUOTE_OUTSIDE_QUASIQUOTE;
+  return err;
+}
+
+L f_quasiquote(L t, L *e) { return eval_quasiquote(car(t), 1); }
+
+L eval_quasiquote(L x, int level) {
+  if (T(x) != CONS) {
+    return x;
+  }
+
+  L head = car(x);
+  L tail = cdr(x);
+
+  if (T(head) == CONS && equ(car(head), atom("unquote"))) {
+    if (level == 1) {
+      L result = eval(car(cdr(head)), env);
+      return cons(result, eval_quasiquote(tail, level));
+    } else {
+      return cons(head, eval_quasiquote(tail, level));
+    }
+  }
+
+  if (T(head) == CONS && equ(car(head), atom("quasiquote"))) {
+    return cons(eval_quasiquote(head, level + 1), eval_quasiquote(tail, level));
+  }
+
+  return cons(eval_quasiquote(head, level), eval_quasiquote(tail, level));
 }

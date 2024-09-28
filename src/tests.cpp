@@ -27,6 +27,7 @@ struct LispTest : public ::testing::Test {
     }
 
     curr_ctx = &test_ctx;
+    eval_string("(define list (lambda args args))");
   }
 
   void TearDown() override {
@@ -49,6 +50,65 @@ struct LispTest : public ::testing::Test {
     return eval(Read(), env);
   }
 
+  // look aat this fucking mess up here
+  void print_to_buffer(L x, char *buffer, size_t buffer_size) {
+    if (T(x) == NIL) {
+      snprintf(buffer, buffer_size, "()");
+    } else if (T(x) == ATOM) {
+      snprintf(buffer, buffer_size, "%s", A + ord(x));
+    } else if (T(x) == PRIM) {
+      snprintf(buffer, buffer_size, "<%s>", prim[ord(x)].s);
+    } else if (T(x) == CONS || T(x) == MACR) {
+      printlist_to_buffer(x, buffer, buffer_size);
+    } else if (T(x) == CLOS) {
+      snprintf(buffer, buffer_size, "{%u}", ord(x));
+    } else if (T(x) == VECTOR) {
+      I start = ord(x);
+      I size = cell[--start];
+      size_t offset = 0;
+      offset += snprintf(buffer + offset, buffer_size - offset, "#(");
+      for (I i = 0; i < size; ++i) {
+        char temp[128];
+        print_to_buffer(cell[start - 1 - i], temp, sizeof(temp));
+        offset += snprintf(buffer + offset, buffer_size - offset, "%s", temp);
+        if (i < size - 1) {
+          offset += snprintf(buffer + offset, buffer_size - offset, " ");
+        }
+      }
+      snprintf(buffer + offset, buffer_size - offset, ")");
+    } else if (T(x) == NOP) {
+      return;
+    } else {
+      snprintf(buffer, buffer_size, "%.10lg", x);
+    }
+  }
+
+  void printlist_to_buffer(L t, char *buffer, size_t buffer_size) {
+    size_t offset = 0;
+    offset += snprintf(buffer + offset, buffer_size - offset, "(");
+
+    while (1) {
+      char temp[128];
+      print_to_buffer(car(t), temp, sizeof(temp));
+      offset += snprintf(buffer + offset, buffer_size - offset, "%s", temp);
+
+      t = cdr(t);
+
+      if (_not(t)) {
+        break;
+      }
+      if (T(t) != CONS) {
+        offset += snprintf(buffer + offset, buffer_size - offset, " . ");
+        print_to_buffer(t, temp, sizeof(temp));
+        offset += snprintf(buffer + offset, buffer_size - offset, "%s", temp);
+        break;
+      }
+      offset += snprintf(buffer + offset, buffer_size - offset, " ");
+    }
+
+    snprintf(buffer + offset, buffer_size - offset, ")");
+  }
+
   bool match_variable(L x, const char *str) {
     char debug_output[256];
 
@@ -64,25 +124,16 @@ struct LispTest : public ::testing::Test {
       return strcmp("()", str) == 0;
 
     } else if (T(x) == CONS) {
-      L car_val = car(x);
-      L cdr_val = cdr(x);
-      char car_str[128], cdr_str[128];
-
-      lisp_expression_to_string(car_val, car_str, sizeof(car_str));
-      lisp_expression_to_string(cdr_val, cdr_str, sizeof(cdr_str));
-
-      sprintf(debug_output, "comparing CONS: (%s . %s) with %s", car_str,
-              cdr_str, str);
+      char buffer[128];
+      printlist_to_buffer(x, buffer, sizeof(buffer));
+      sprintf(debug_output, "comparing CONS: %s with %s", buffer, str);
       printf("%s\n", debug_output);
-      char cons_repr[256];
-      snprintf(cons_repr, sizeof(cons_repr), "(%s . %s)", car_str, cdr_str);
-      return strcmp(cons_repr, str) == 0;
+      return strcmp(buffer, str) == 0;
     } else if (T(x) == VECTOR) {
-      I start = ord(x);       // Starting index of vector
-      I size = cell[--start]; // First item in vector block is the size
+      I start = ord(x);
+      I size = cell[--start];
 
-      char vec_str[1024] =
-          "#("; // Temporary buffer to build vector representation
+      char vec_str[1024] = "#(";
 
       for (I i = 0; i < size; ++i) {
         char elem_str[128];
@@ -91,7 +142,7 @@ struct LispTest : public ::testing::Test {
 
         strcat(vec_str, elem_str);
         if (i < size - 1) {
-          strcat(vec_str, " "); // Add space between elements
+          strcat(vec_str, " ");
         }
       }
       strcat(vec_str, ")");
@@ -270,7 +321,7 @@ TEST_F(LispTest, Eval) { EXPECT_EQ(eval_string("(eval 42)\n"), 42); }
 
 TEST_F(LispTest, Quote) {
   auto r = eval_string("(quote (1 2 3))\n");
-  EXPECT_EQ(match_variable(r, "(1 . (2 . (3 . ())))"), true);
+  EXPECT_EQ(match_variable(r, "(1 2 3)"), true);
 }
 
 TEST_F(LispTest, Car) { EXPECT_EQ(eval_string("(car (cons 1 2))\n"), 1); }
@@ -403,4 +454,38 @@ TEST_F(LispTest, VectorLength) {
   eval_string("(define v (vector 1 2 3 4))\n");
   EXPECT_EQ(eval_string("(vector-length v)\n"), 4);
   EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, QuasiquoteSimple) {
+  auto result = eval_string("`(1 2 3)\n");
+  EXPECT_EQ(match_variable(result, "(1 2 3)"), true);
+  EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, QuasiquoteWithUnquote) {
+  auto result = eval_string("`(1 2 ,(+ 3 4) 5)\n");
+  EXPECT_EQ(match_variable(result, "(1 2 7 5)"), true);
+  EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, NestedQuasiquoteWithUnquote) {
+  auto result = eval_string("`(1 ` , (+ 2 3) ,(+ 4 5))\n");
+  EXPECT_EQ(match_variable(result, "(1 (quasiquote (unquote (+ 2 3))) 9)"),
+            true);
+  EXPECT_EQ(g_err_state.type, NONE);
+
+  result = eval_string("`(1 ` ,(+ 2 3) ,(+ 4 5))\n");
+  EXPECT_EQ(match_variable(result, "(1 (quasiquote (unquote (+ 2 3))) 9)"),
+            true);
+  EXPECT_EQ(g_err_state.type, NONE);
+
+  result = eval_string("`(1 `,(+ 2 3) ,(+ 4 5))\n");
+  EXPECT_EQ(match_variable(result, "(1 (quasiquote (unquote (+ 2 3))) 9)"),
+            true);
+  EXPECT_EQ(g_err_state.type, NONE);
+}
+
+TEST_F(LispTest, UnquoteWithoutQuasiquote) {
+  auto result = eval_string(",(+ 2 3)\n");
+  EXPECT_EQ(g_err_state.type, UNQUOTE_OUTSIDE_QUASIQUOTE);
 }

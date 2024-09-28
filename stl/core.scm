@@ -32,3 +32,4 @@
 
 (include 'stl/common.scm)
 (include 'stl/list.scm)
+(include 'stl/type.scm)

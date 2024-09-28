@@ -154,5 +154,16 @@ L parse() {
     return list();
   if (*buf == '\'')
     return cons(atom("quote"), cons(Read(), nil));
+  if (*buf == '`') {
+    if (buf[1] == ',') {
+      // very pretty
+      return cons(atom("quasiquote"), cons(cons(atom("unquote"), cons(Read(), nil)),nil));
+    }
+    return cons(atom("quasiquote"), cons(Read(), nil));
+  }
+
+  if (*buf == ',')
+    return cons(atom("unquote"), cons(Read(), nil));
+
   return sscanf(buf, "%lg%n", &n, &i) > 0 && !buf[i] ? n : atom(buf);
 }

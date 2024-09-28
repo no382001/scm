@@ -45,7 +45,7 @@ def find_c_files_in_directory(root_dir):
 if __name__ == '__main__':
     root_directory = os.getcwd()
 
-    c_files = find_c_files_in_directory("/src")
+    c_files = find_c_files_in_directory("src")
 
     output_file = 'util/forward_declarations.h'
 

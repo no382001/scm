@@ -72,7 +72,8 @@ typedef enum {
   SETCAR_ARG_NOT_CONS,
   SETCDR_ARG_NOT_CONS,
   VECTOR_FN_NOT_A_VECTOR,
-  VECTOR_FN_INDEX_OOB
+  VECTOR_FN_INDEX_OOB,
+  UNQUOTE_OUTSIDE_QUASIQUOTE
 } ERROR_T;
 
 #include "../util/error_map.h"
@@ -344,6 +345,8 @@ struct {
             {"vector-set!", f_vector_set, 0},
             {"vector-length", f_vector_length, 0},
             {"__prims", f_list_primitives, 0},
+            {"unquote", f_unquote, 0},
+            {"quasiquote", f_quasiquote, 0},
             {0}};
 
 #endif
