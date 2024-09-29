@@ -238,8 +238,8 @@ L step(L x, L e) {
         if (!g_err_state.proc) {
           g_err_state.proc = proc;
         }
-        if (!define_underway) { // i could just check for errtype inside define
-                                // instead of this
+        if (!suppress_jumps) { // i could just check for errtype inside define
+                               // instead of this
           longjmp(jb, 1);
         }
       }

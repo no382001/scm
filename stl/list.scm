@@ -79,18 +79,16 @@
             (any? f (cdr t)))
         ()))
 
-(defun mapcar (f t)
-    (if t
-        (cons (f (car t)) (mapcar f (cdr t)))
-        ()))
+(defun map (f lst)
+   (if (null? lst)
+       ()
+       (cons (f (car lst)) (map f (cdr lst)))))
 
-(defun map (f . args)
-    (if (any? null? args)
-        ()
-        (let*
-            ((x (mapcar car args))
-             (t (mapcar cdr args)))
-            (cons (apply f x) (apply map (cons f t))))))
+(defun map2 (f lst1 lst2)
+   (if (or (null? lst1) (null? lst2))
+       ()
+       (cons (f (car lst1) (car lst2))
+             (map2 f (cdr lst1) (cdr lst2)))))
 
 (defun zip (args)
     (apply map list args))
@@ -109,3 +107,18 @@
     (if args
         (seqby n m (car args))
         (seq n m)))
+
+(defun last (lst)
+  (nth (reverse lst) 0))
+
+(defun butlast (lst)
+  (reverse (nthcdr (reverse lst) 1)))
+
+(define __value_delim '(__value_delim))
+
+(defun (make-values . args)
+  (cond ((null? args) '())
+        ((null? (cdr args)) (list (car args)))
+        (else (cons (car args) (cons __value_delim (my-values (cdr args)))))))
+
+; (make-values '1 '(2 3) '4)

@@ -157,7 +157,8 @@ L parse() {
   if (*buf == '`') {
     if (buf[1] == ',') {
       // very pretty
-      return cons(atom("quasiquote"), cons(cons(atom("unquote"), cons(Read(), nil)),nil));
+      return cons(atom("quasiquote"),
+                  cons(cons(atom("unquote"), cons(Read(), nil)), nil));
     }
     return cons(atom("quasiquote"), cons(Read(), nil));
   }

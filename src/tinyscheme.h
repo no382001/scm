@@ -113,9 +113,9 @@ struct {
   L e;
 } rcso_struct;
 
-/* used in f_define to ignore longjump and instead roll the error back to the
- * function */
-short define_underway = 0;
+/* used in f_define and f_load to ignore longjump and instead roll the error
+ * back to the function */
+short suppress_jumps = 0;
 
 /* trace things */
 int trace_depth = 0;

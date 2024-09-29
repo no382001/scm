@@ -1,5 +1,6 @@
 ; core.scm
 
+(define apply (lambda (f args) (eval (cons f args))))
 (define list (lambda args args))
 (define defun (macro (f v x) (list 'define f (list 'lambda v x))))
 
@@ -17,17 +18,15 @@
         (if (member filename __files-included)
             (begin
                 (display filename)
-                (display 'already-included-)
-                (newline))
+                (display 'already-included-))
             (begin
-                (display 'Loading-)
+                (display 'loading-)
                 (display filename)
                 (newline)
                 (setq __files-included (cons filename __files-included))
                 (load filename)
-                (display 'Loaded-)
-                (display filename)
-                (newline)))))
+                (display 'loaded-)
+                (display filename)))))
     (include-impl f)))
 
 (include 'stl/common.scm)

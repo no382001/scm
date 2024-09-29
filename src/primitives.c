@@ -126,9 +126,9 @@ L f_define(L t, L *e) {
       NONE; // clear this, i should really refactor this whole eval thing
   g_err_state.box = nil;
 
-  define_underway++; // FIX: get rid of this shit
+  suppress_jumps++; // FIX: get rid of this shit
   L res = eval(car(cdr(t)), *e);
-  define_underway--;
+  suppress_jumps--;
 
   if (equ(res, err)) {
     g_err_state.type = FUNCTION_DEF_IS_NOT_LAMBDA;
@@ -162,7 +162,7 @@ L f_load(L t, L *e) {
     return err;
   }
   parsing_ctx old_context = *curr_ctx;
-
+  suppress_jumps++;
   // printf("--> loading %s...\n",filename);
   switch_ctx_to_file(file);
 
@@ -183,9 +183,8 @@ L f_load(L t, L *e) {
   // close file and restore previous context
   fclose(curr_ctx->file);
   *curr_ctx = old_context;
-  // printf("--> loaded %s...",filename);
-
-  return nil;
+  suppress_jumps--;
+  return nop;
 }
 
 L f_display(L t, L *e) {
