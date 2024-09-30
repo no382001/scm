@@ -36,6 +36,9 @@ void print_token(prim_t token) {
   case COMMENT:
     printf("COMMENT ");
     break;
+  case NEWLINE:
+    printf("NEWLINE ");
+    break;
   default:
     break;
   }

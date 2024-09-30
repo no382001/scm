@@ -4,6 +4,7 @@
 
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
+extern int paren_count;
 
 int main(int argc, char **argv) {
   default_ctx.file = stdin;
@@ -19,7 +20,6 @@ int main(int argc, char **argv) {
   }
 
   int i = 0;
-  prim_t tokens[1024] = {};
 
   advance();
   while (1) {
@@ -31,19 +31,26 @@ int main(int argc, char **argv) {
         break;
       }
     }
+    static prim_t tokens[1024] = {0};
 
     while (looking_at() != '\n' && looking_at() != EOF) {
       tokens[i++] = scan();
-      print_token(tokens[i-1]);
+      print_token(tokens[i - 1]);
       fflush(stdout);
     }
+
+    if (looking_at() == '\n') {
+      prim_t r = {.t = NEWLINE};
+      tokens[i++] = r;
+      print_token(tokens[i - 1]);
+    }
+
     printf("\n");
 
     flush();
-    i = 0;
-
     advance();
   }
 
+  printf("size: %d\n", i);
   return 0;
 }

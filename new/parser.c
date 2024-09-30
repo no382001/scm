@@ -31,14 +31,14 @@ void switch_ctx_inject_string(const char *input_str) {
 }
 
 char peek() {
-    char c = EOF;
-    if (curr_ctx->file == stdin){
-        c = fgetc(curr_ctx->file);
-        ungetc(c, curr_ctx->file);
-    } else if (curr_ctx->buf_pos + 1 < curr_ctx->buf_end) {
-        c = curr_ctx->buffer[curr_ctx->buf_pos + 1];
-    } 
-    return c;
+  char c = EOF;
+  if (curr_ctx->file == stdin) {
+    c = fgetc(curr_ctx->file);
+    ungetc(c, curr_ctx->file);
+  } else if (curr_ctx->buf_pos + 1 < curr_ctx->buf_end) {
+    c = curr_ctx->buffer[curr_ctx->buf_pos + 1];
+  }
+  return c;
 }
 
 char looking_at() { return curr_ctx->curr; }
@@ -73,7 +73,7 @@ char advance() {
 
 void flush() { curr_ctx->curr = ' '; }
 
-static int paren_count = 0;
+int paren_count = 0;
 
 prim_t scan() {
   prim_t res = {0};
@@ -127,17 +127,15 @@ prim_t scan() {
     return res;
   default:
     // number
-    if (looking_at() == '-'){
-        volatile int i = 0;
-    }
     if (isdigit(looking_at()) || (looking_at() == '-' && isdigit(peek()))) {
 
       char buffer[64];
       int idx = 0;
-      if (looking_at() == '-')
-         buffer[idx++] = looking_at();
-         advance();
-         
+      if (looking_at() == '-') {
+        buffer[idx++] = looking_at();
+        advance();
+      }
+
       while ((isdigit(looking_at()) || looking_at() == '.')) {
         buffer[idx++] = looking_at();
         advance();
