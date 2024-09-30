@@ -22,7 +22,7 @@ void switch_ctx_to_stdin() {
 
 L Read() {
   if (curr_ctx->see == EOF) {
-    return nil;
+    return nop;
   }
   char c = scan();
   if (c == EOF) {
@@ -111,7 +111,7 @@ char scan() {
       look();
     }
     return scan();
-  } else if (seeing('(') || seeing(')') || seeing('\'')) {
+  } else if (seeing('(') || seeing(')') || seeing('\'') || seeing('`')) {
     char c = get();
     buf[i++] = c;
   } else {
@@ -127,16 +127,28 @@ char scan() {
 L list() {
   L t, *p;
   for (t = nil, p = &t;; *p = cons(parse(), nil), p = cell + sp) {
-    if (scan() == ')')
+    char c = scan();
+    // FIX: it wasnt legalto put anything next to a list w/o whitespace
+    // eg. `(+ 1 ,n) it overreads and keeps looking for a closing paren,
+    // so this is a hack for that
+    if (c == ')' || c == EOF)
       return t;
     if (*buf == '.' && !buf[1])
       return *p = Read(), scan(), t;
   }
 }
-
-L parse() {
+L parse_number_or_atom(const char *buf, int offset) {
   L n;
   int i;
+
+  if (sscanf(buf + offset, "%lg%n", &n, &i) > 0 && !buf[i + offset]) {
+    return n;
+  }
+
+  return atom(buf + offset);
+}
+
+L parse() {
   if ((*buf == '#')) {
     switch (buf[1]) {
     case 't':
@@ -163,8 +175,16 @@ L parse() {
     return cons(atom("quasiquote"), cons(Read(), nil));
   }
 
-  if (*buf == ',')
-    return cons(atom("unquote"), cons(Read(), nil));
+  if (*buf == ',') {
+    // if this shit is molded with the variable name, the
+    // name just gets skipped, handle that
+    if (buf[1]) {
+      L res = parse_number_or_atom(buf, 1);
+      return cons(atom("unquote"), cons(res, cons(Read(), nil)));
+    }
 
-  return sscanf(buf, "%lg%n", &n, &i) > 0 && !buf[i] ? n : atom(buf);
+    return cons(atom("unquote"), cons(Read(), nil));
+  }
+
+  return parse_number_or_atom(buf, 0);
 }

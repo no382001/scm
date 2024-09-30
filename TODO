@@ -14,7 +14,6 @@ TESTS:
 IMPLEMENT:
 - arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - / with 1 arg should do (/ 1 arg)
-- add quasiquote
 - strings would be okay to have, even tho only display would profit from it directly
 
 STANDARD LIBRARY:

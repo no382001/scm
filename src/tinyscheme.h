@@ -28,7 +28,8 @@
 #define L double
 
 /* T(x) returns the tag bits of a NaN-boxed Lisp expression x */
-#define T(x) *(unsigned long long *)&x >> 48
+
+L T(L x) { return *(unsigned long long *)&x >> 48; }
 
 /* address of the atom heap is at the bottom of the cell stack */
 #define A (char *)cell

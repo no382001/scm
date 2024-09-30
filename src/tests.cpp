@@ -483,6 +483,11 @@ TEST_F(LispTest, NestedQuasiquoteWithUnquote) {
   EXPECT_EQ(match_variable(result, "(1 (quasiquote (unquote (+ 2 3))) 9)"),
             true);
   EXPECT_EQ(g_err_state.type, NONE);
+
+  result = eval_string("(define n 1)\n");
+  result = eval_string("`(+ 1 ,n)\n");
+  EXPECT_EQ(match_variable(result, "(+ 1 1)"), true);
+  EXPECT_EQ(g_err_state.type, NONE);
 }
 
 TEST_F(LispTest, UnquoteWithoutQuasiquote) {
