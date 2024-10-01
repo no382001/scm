@@ -42,3 +42,7 @@ TYPES:
   (cond ((= 0 n) 1)
         ((= 1 n) 1)
         (else (+ (fib (- n 1)) (fib (- n 2)))))) ; there is no [else] in [cond] rn and it would look better with a [ branch ]
+
+
+OPTIMIOZATIONN:
+- maybe if i use -O2 recursive calls will be replaced by jumps!

@@ -5,19 +5,19 @@
 #include <string.h>
 
 enum type_t {
-  UNKNOWN = 0,
-  DOUBLEQUOTE,
-  RPAREN,
-  LPAREN,
-  QUOTE,
-  QUASIQUOTE,
-  UNQUOTE,
-  NUMBER,
-  ATOM,
-  END_OF_FILE,
-  COMMENT,
-  NEWLINE,
-  ERROR
+  t_UNKNOWN = 0,
+  t_DOUBLEQUOTE,
+  t_RPAREN,
+  t_LPAREN,
+  t_QUOTE,
+  t_QUASIQUOTE,
+  t_UNQUOTE,
+  t_NUMBER,
+  t_ATOM,
+  t_END_OF_FILE,
+  t_COMMENT,
+  t_NEWLINE,
+  t_ERROR
 };
 
 typedef struct {

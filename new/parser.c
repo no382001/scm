@@ -83,47 +83,47 @@ prim_t scan() {
   }
 
   if (looking_at() == EOF) {
-    res.t = END_OF_FILE;
+    res.t = t_END_OF_FILE;
     return res;
   }
 
   switch (looking_at()) {
   case '(':
     advance();
-    res.t = LPAREN;
+    res.t = t_LPAREN;
     paren_count++;
     return res;
   case ')':
     advance();
     paren_count--;
-    res.t = RPAREN;
+    res.t = t_RPAREN;
     return res;
   case '\'':
     advance();
-    res.t = QUOTE;
+    res.t = t_QUOTE;
     return res;
   case '`':
     advance();
-    res.t = QUASIQUOTE;
+    res.t = t_QUASIQUOTE;
     return res;
   case ',':
     advance();
-    res.t = UNQUOTE;
+    res.t = t_UNQUOTE;
     return res;
   case '"':
     advance();
-    res.t = DOUBLEQUOTE;
+    res.t = t_DOUBLEQUOTE;
     return res;
   case '\n': // never hit, probably
     advance();
-    res.t = NEWLINE;
+    res.t = t_NEWLINE;
     return res;
   case ';':
     advance();
     while (looking_at() != '\n' && looking_at() != EOF) {
       advance();
     }
-    res.t = COMMENT;
+    res.t = t_COMMENT;
     return res;
   default:
     // number
@@ -142,7 +142,7 @@ prim_t scan() {
       }
       buffer[idx] = '\0';
 
-      res.t = NUMBER;
+      res.t = t_NUMBER;
       res.num = strtod(buffer, NULL);
       return res;
     }
@@ -156,7 +156,7 @@ prim_t scan() {
     }
     buffer[idx] = '\0';
 
-    res.t = ATOM;
+    res.t = t_ATOM;
     res.str = malloc(strlen(buffer) + 1);
     strcpy(res.str, buffer);
     return res;
