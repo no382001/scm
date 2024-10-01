@@ -12,13 +12,22 @@ extern int token_idx;
 
 void setUp(void) {
   trace = 0;
+
   g_err_state.type = NONE;
   g_err_state.proc = 0;
   g_err_state.box = 0;
+
+  curr_ctx->file = NULL;
+  memset(curr_ctx->buffer, 0, sizeof(curr_ctx->buffer));
+  curr_ctx->buf_pos = 0;
+  curr_ctx->buf_end = 0;
+  curr_ctx->curr = ' ';
+
   init_interpreter();
 }
-
+int doprint = 0;
 void tearDown(void) {
+  doprint = 0;
   hp = 0;
   sp = N;
   memset(token_buffer, 0, sizeof(token_buffer));
@@ -149,9 +158,8 @@ void lisp_expression_to_string(L x, char *buffer, size_t buffer_size) {
     snprintf(buffer, buffer_size, "%.10g", x);
   }
 }
-int doprint = 0;
 
-L eval_this(const char *str) {
+L parse_this(const char *str) {
 
   switch_ctx_inject_string(str);
 
@@ -177,45 +185,53 @@ L eval_this(const char *str) {
         print_token(token_buffer[i - 1]);
       }
     }
-
-    int jmpres = setjmp(jb);
-    if (jmpres == 1) {
-      print_and_reset_error();
-      return err;
-    } else if (jmpres == 2) {
-      return eval(rcso_ctx.x, rcso_ctx.e);
-    } else {
-      return eval(parse(), env);
-    }
+    return parse();
   }
 
   return nop;
 }
 
-/* --- */
+/* --- parsing --- */
 
-void test_AddSimple(void) {
-  L result = eval_this("(+ 1 1)\n");
-  TEST_ASSERT_EQUAL(2, result);
-  TEST_ASSERT_EQUAL(NONE, g_err_state.type);
+void test_simple1(void) {
+  L result = parse_this("(+ 1 1)\n");
+  TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 1)"), true);
 }
 
-void test_AddMultiple(void) {
-  L result = eval_this("(+ 1 2 3)\n");
-  TEST_ASSERT_EQUAL(6, result);
-  TEST_ASSERT_EQUAL(NONE, g_err_state.type);
+void test_simple2(void) {
+  L result = parse_this("(+ 1 2 3)\n");
+  TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 2 3)"), true);
 }
 
-void test_SubtractSimple(void) {
-  L result = eval_this("(- 5 3)\n");
-  TEST_ASSERT_EQUAL(2, result);
-  TEST_ASSERT_EQUAL(NONE, g_err_state.type);
+void test_nested1(void) {
+  L result = parse_this("(+ (* 2 3) (- 5 2))\n");
+  TEST_ASSERT_EQUAL(match_variable(result, "(+ (* 2 3) (- 5 2))"), true);
+}
+
+void test_nested2(void) {
+  L result = parse_this("(+ (* 2 (+ 3 4)) (- 10 (+ 2 (* 1 3))))");
+  TEST_ASSERT_EQUAL(
+      match_variable(result, "(+ (* 2 (+ 3 4)) (- 10 (+ 2 (* 1 3))))"), true);
+}
+
+void test_nested3(void) {
+  L result = parse_this("(+ (list 1 (list 2 3)) (list 4 5))");
+  TEST_ASSERT_EQUAL(
+      match_variable(result, "(+ (list 1 (list 2 3)) (list 4 5))"), true);
+}
+
+void test_empty(void) {
+  L result = parse_this("(+ 1 ())");
+  TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 ())"), true);
 }
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_AddSimple);
-  RUN_TEST(test_AddMultiple);
-  RUN_TEST(test_SubtractSimple);
+  RUN_TEST(test_simple1);
+  RUN_TEST(test_simple2);
+  RUN_TEST(test_nested1);
+  RUN_TEST(test_nested2);
+  RUN_TEST(test_nested3);
+  RUN_TEST(test_empty);
   return UNITY_END();
 }

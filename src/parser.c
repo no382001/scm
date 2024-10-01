@@ -35,8 +35,8 @@ char peek() {
   if (curr_ctx->file == stdin) {
     c = fgetc(curr_ctx->file);
     ungetc(c, curr_ctx->file);
-  } else if (curr_ctx->buf_pos + 1 < curr_ctx->buf_end) {
-    c = curr_ctx->buffer[curr_ctx->buf_pos + 1];
+  } else if (curr_ctx->buf_pos < curr_ctx->buf_end) {
+    c = curr_ctx->buffer[curr_ctx->buf_pos];
   }
   return c;
 }

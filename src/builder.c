@@ -18,25 +18,30 @@ prim_t prev() { return token_buffer[--token_idx]; }
 
 L list() {
   L t = nil, *p = &t;
+  get(); // eat the '('
+
   while (1) {
-    prim_t token = next(); // eat '('
-    if (token.t == t_RPAREN || token.t == t_END_OF_FILE) {
-      get();
+    prim_t token = look();
+
+    if (token.t == t_RPAREN) {
+      get(); // eat the ')'
       return t;
     }
 
-    // handle dotted pairs
+    if (token.t == t_END_OF_FILE) {
+      return err;
+    }
+
     if (token.t == t_DOT) {
-      get();         // eat dot
-      *p = parse();  // thing after the dot
-      token = get(); // eat token after thing (should be ')')
-      if (token.t != t_RPAREN) {
+      get();        // eat dot
+      *p = parse(); // parse the expression after the dot
+      if (look().t != t_RPAREN) {
         return err;
       }
+      get(); // eat the ')'
       return t;
     }
 
-    // next
     *p = cons(parse(), nil);
     p = &cell[sp--]; // move to the next cell in the list
   }
@@ -44,28 +49,36 @@ L list() {
 
 L parse() {
   prim_t p = look();
+
   switch (p.t) {
   case t_TRUE:
+    get();
     return tru;
   case t_FALSE:
+    get();
     return nil;
   case t_LPAREN:
     return list();
   case t_QUOTE:
+    get();
     return cons(atom("quote"), cons(parse(), nil));
   case t_QUASIQUOTE:
+    get();
     return cons(atom("quasiquote"), cons(parse(), nil));
   case t_UNQUOTE:
+    get();
     return cons(atom("unquote"), cons(parse(), nil));
   case t_ATOM:
+    get();
     return atom(p.str);
   case t_NUMBER:
+    get();
     return num(p.num);
   case t_NEWLINE:
   case t_COMMENT:
+    get();
     return nop;
   default:
     return err;
-    break;
   }
 }
