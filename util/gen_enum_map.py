@@ -16,11 +16,10 @@ def generate_enum_map(header_name, enum_name, enum_block):
     enum_values = [line.split('=')[0].strip().replace(',', '') for line in enum_block.splitlines() if line.strip() and not line.strip().startswith("//")]
     
     with open(f"{header_name}.h", 'w') as file:
-        file.write("#ifndef ENUM_MAP_H\n#define ENUM_MAP_H\n\n")
+        file.write("#pragma once\n")
         file.write(f"static const char* {enum_name}_to_string[] = {{\n")
         for value in enum_values:
             file.write(f"    \"{value}\",\n")
-        file.write("};\n\n#endif // ENUM_MAP_H\n")
 
 c_file_path = "src/tinyscheme.h"
 

@@ -158,3 +158,16 @@ L f_vector_length(L t, L *e);
 L f_unquote(L t, L *e);
 L f_quasiquote(L t, L *e);
 L eval_quasiquote(L x, int level);
+
+/* builder */
+
+#include "parser.h"
+
+L read();
+prim_t look();
+I seeing(char c);
+prim_t get();
+prim_t scan();
+L list();
+L parse_number_or_atom(const char *buf, int offset);
+L parse();

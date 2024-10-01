@@ -46,3 +46,9 @@ TYPES:
 
 OPTIMIOZATIONN:
 - maybe if i use -O2 recursive calls will be replaced by jumps!
+
+
+- string type!
+- prim procc too
+
+- try getting tests running again?

@@ -1,60 +1,55 @@
-#include "tinyscheme.h"
+#include "parser.h"
+
+parse_ctx default_ctx = {
+    .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .curr = ' '};
+
+parse_ctx *curr_ctx = &default_ctx;
 
 void switch_ctx_to_file(FILE *file) {
-  curr_ctx = (parsing_ctx *)malloc(sizeof(parsing_ctx));
   curr_ctx->file = file;
   curr_ctx->buf_pos = 0;
   curr_ctx->buf_end = 0;
-  curr_ctx->see = ' ';
-  look(); // init first char
+  curr_ctx->curr = ' ';
 }
 
 void switch_ctx_to_stdin() {
-  if (curr_ctx != &default_ctx) {
+  if (curr_ctx->file != stdin) {
     if (curr_ctx->file) {
       fclose(curr_ctx->file);
     }
-    free(curr_ctx);
-  }
-
-  curr_ctx = &default_ctx;
-}
-
-L Read() {
-  if (curr_ctx->see == EOF) {
-    return nop;
-  }
-  char c = scan();
-  if (c == EOF) {
-    return err; // i cant think of nothing better rn
-  }
-  return parse();
-}
-
-void skip_multiline_comment() {
-  get(); // consume the '|' after '#'
-  while (1) {
-    if (curr_ctx->see == '|') {
-      get(); // consume the '|'
-      if (curr_ctx->see == '#') {
-        get(); // consume the '#', end of comment
-        return;
-      }
-    } else {
-      get(); // continue reading through the comment
-    }
+    curr_ctx->file = stdin;
   }
 }
 
-// read the next char
-void look() {
+void switch_ctx_inject_string(const char *input_str) {
+  strncpy(curr_ctx->buffer, input_str, sizeof(curr_ctx->buffer) - 1);
+  curr_ctx->buffer[sizeof(curr_ctx->buffer) - 1] = '\0';
+  curr_ctx->buf_pos = 0;
+  curr_ctx->buf_end = strlen(curr_ctx->buffer);
+  curr_ctx->curr = curr_ctx->buffer[0];
+  curr_ctx->file = NULL;
+}
+
+char peek() {
+  char c = EOF;
   if (curr_ctx->file == stdin) {
-    // default, read from stdin
-    int c = getchar();
-    curr_ctx->see = c == EOF ? EOF : (char)c;
+    c = fgetc(curr_ctx->file);
+    ungetc(c, curr_ctx->file);
+  } else if (curr_ctx->buf_pos + 1 < curr_ctx->buf_end) {
+    c = curr_ctx->buffer[curr_ctx->buf_pos + 1];
+  }
+  return c;
+}
+
+char looking_at() { return curr_ctx->curr; }
+
+char advance() {
+  if (curr_ctx->file == stdin) {
+    curr_ctx->curr = getchar();
+    return curr_ctx->curr;
   } else if (curr_ctx->buf_pos < curr_ctx->buf_end) {
     // advance the buffer
-    curr_ctx->see = curr_ctx->buffer[curr_ctx->buf_pos++];
+    curr_ctx->curr = curr_ctx->buffer[curr_ctx->buf_pos++];
   } else if (curr_ctx->file != NULL) {
     // attempt read
     curr_ctx->buf_end =
@@ -63,128 +58,116 @@ void look() {
 
     if (curr_ctx->buf_end > 0) {
       // continue with new data
-      curr_ctx->see = curr_ctx->buffer[curr_ctx->buf_pos++];
+      curr_ctx->curr = curr_ctx->buffer[curr_ctx->buf_pos++];
     } else {
       if (feof(curr_ctx->file)) {
-        curr_ctx->see = EOF;
+        curr_ctx->curr = EOF;
       }
     }
   } else {
-    curr_ctx->see = EOF; // no file?
+    curr_ctx->curr = EOF; // no file?
   }
+
+  return curr_ctx->curr;
 }
 
-// what are we looking at?
-I seeing(char c) {
-  return c == ' ' ? curr_ctx->see > 0 && curr_ctx->see <= c
-                  : curr_ctx->see == c;
-}
+void flush() { curr_ctx->curr = ' '; }
 
-// get current and advance
-char get() {
-  char c = curr_ctx->see;
-  look();
-  return c;
-}
+int paren_count = 0;
 
-char scan() {
-  int i = 0;
-  while (seeing(' ')) {
-    look();
+prim_t scan() {
+  prim_t res = {0};
+
+  while (isspace(looking_at())) {
+    advance();
   }
-  if (curr_ctx->see == EOF) {
-    return EOF;
+
+  if (looking_at() == EOF) {
+    res.t = t_END_OF_FILE;
+    return res;
   }
-  // multiline comments and #t | #f
-  if (seeing('#')) {
-    get();
-    if (seeing('|')) {
-      skip_multiline_comment();
-      return scan();
+
+  switch (looking_at()) {
+  case '(':
+    advance();
+    res.t = t_LPAREN;
+    paren_count++;
+    return res;
+  case ')':
+    advance();
+    paren_count--;
+    res.t = t_RPAREN;
+    return res;
+  case '\'':
+    advance();
+    res.t = t_QUOTE;
+    return res;
+  case '`':
+    advance();
+    res.t = t_QUASIQUOTE;
+    return res;
+  case ',':
+    advance();
+    res.t = t_UNQUOTE;
+    return res;
+  case '"':
+    advance();
+    res.t = t_DOUBLEQUOTE;
+    return res;
+  case '\n': // never hit, probably
+    advance();
+    res.t = t_NEWLINE;
+    return res;
+  case ';':
+    advance();
+    while (looking_at() != '\n' && looking_at() != EOF) {
+      advance();
+    }
+    res.t = t_COMMENT;
+    return res;
+  default:
+    // number
+    if (isdigit(looking_at()) || (looking_at() == '-' && isdigit(peek()))) {
+
+      char buffer[64];
+      int idx = 0;
+      if (looking_at() == '-') {
+        buffer[idx++] = looking_at();
+        advance();
+      }
+
+      while ((isdigit(looking_at()) || looking_at() == '.')) {
+        buffer[idx++] = looking_at();
+        advance();
+      }
+      buffer[idx] = '\0';
+
+      res.t = t_NUMBER;
+      res.num = strtod(buffer, NULL);
+      return res;
+    }
+
+    char buffer[128];
+    int idx = 0;
+    while (looking_at() != ' ' && looking_at() != EOF && looking_at() != ')' &&
+           looking_at() != '\n') {
+      buffer[idx++] = looking_at();
+      advance();
+    }
+    buffer[idx] = '\0';
+
+    if (strcmp(buffer, "#t") == 0) {
+      res.t = t_TRUE;
+    } else if (strcmp(buffer, "#f") == 0) {
+      res.t = t_FALSE;
+    } else if (strcmp(buffer, ".") == 0) {
+      res.t = t_DOT;
     } else {
-      buf[i++] = '#';
-      buf[i++] = get(); // this is not ideal, anything can be here
-    }
-    // single line comment
-  } else if (seeing(';')) {
-    while (!seeing('\n') && curr_ctx->see != EOF) {
-      look();
-    }
-    return scan();
-  } else if (seeing('(') || seeing(')') || seeing('\'') || seeing('`')) {
-    char c = get();
-    buf[i++] = c;
-  } else {
-    do {
-      char c = get();
-      buf[i++] = c;
-    } while (i < PARSE_BUFFER - 1 && !seeing('(') && !seeing(')') &&
-             !seeing(' '));
-  }
-  return buf[i] = 0, *buf;
-}
-
-L list() {
-  L t, *p;
-  for (t = nil, p = &t;; *p = cons(parse(), nil), p = cell + sp) {
-    char c = scan();
-    // FIX: it wasnt legalto put anything next to a list w/o whitespace
-    // eg. `(+ 1 ,n) it overreads and keeps looking for a closing paren,
-    // so this is a hack for that
-    if (c == ')' || c == EOF)
-      return t;
-    if (*buf == '.' && !buf[1])
-      return *p = Read(), scan(), t;
-  }
-}
-L parse_number_or_atom(const char *buf, int offset) {
-  L n;
-  int i;
-
-  if (sscanf(buf + offset, "%lg%n", &n, &i) > 0 && !buf[i + offset]) {
-    return n;
-  }
-
-  return atom(buf + offset);
-}
-
-L parse() {
-  if ((*buf == '#')) {
-    switch (buf[1]) {
-    case 't':
-      return tru;
-      break;
-    case 'f':
-      return nil;
-      break;
-    default:
-      return err;
-      break;
-    }
-  }
-  if (*buf == '(')
-    return list();
-  if (*buf == '\'')
-    return cons(atom("quote"), cons(Read(), nil));
-  if (*buf == '`') {
-    if (buf[1] == ',') {
-      // very pretty
-      return cons(atom("quasiquote"),
-                  cons(cons(atom("unquote"), cons(Read(), nil)), nil));
-    }
-    return cons(atom("quasiquote"), cons(Read(), nil));
-  }
-
-  if (*buf == ',') {
-    // if this shit is molded with the variable name, the
-    // name just gets skipped, handle that
-    if (buf[1]) {
-      L res = parse_number_or_atom(buf, 1);
-      return cons(atom("unquote"), cons(res, cons(Read(), nil)));
+      res.t = t_ATOM;
+      res.str = malloc(strlen(buffer) + 1);
+      strcpy(res.str, buffer);
     }
 
-    return cons(atom("unquote"), cons(Read(), nil));
+    return res;
   }
-
-  return parse_number_or_atom(buf, 0);
 }

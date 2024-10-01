@@ -1,4 +1,5 @@
-#include "tinyscheme.h"
+#include "interpreter.h"
+#include "print.h"
 
 L f_eval(L t, L *e) { return car(evlis(t, *e)); }
 
@@ -145,6 +146,7 @@ L f_define(L t, L *e) {
 L f_macro(L t, L *e) { return macro(car(t), car(cdr(t))); }
 
 L f_load(L t, L *e) {
+  /*
   L x = eval(car(t), *e);
   if (equ(x, err)) {
     g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
@@ -184,6 +186,7 @@ L f_load(L t, L *e) {
   fclose(curr_ctx->file);
   *curr_ctx = old_context;
   suppress_jumps--;
+  */
   return nop;
 }
 
@@ -259,15 +262,15 @@ L f_trace(L x, L *e) {
 }
 
 L f_read(L t, L *e) {
+  /*
   L x;
-
   char c = curr_ctx->see;
   curr_ctx->see = ' ';
 
   x = Read();
   curr_ctx->see = c;
-
-  return x;
+  */
+  return nil;
 }
 
 L f_gc(L x, L *e) {
@@ -276,8 +279,8 @@ L f_gc(L x, L *e) {
 }
 
 L f_rcrbcs(L x, L *e) {
-  rcso_struct.x = x;
-  rcso_struct.e = *e;
+  rcso_ctx.x = x;
+  rcso_ctx.e = *e;
   trace_depth = 0;
   longjmp(jb, 2);
 }

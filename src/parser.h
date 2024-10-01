@@ -5,7 +5,8 @@
 #include <string.h>
 
 enum type_t {
-  t_UNKNOWN = 0,
+  t_END_OF_FILE = 0,
+  t_UNKNOWN,
   t_DOUBLEQUOTE,
   t_RPAREN,
   t_LPAREN,
@@ -14,10 +15,12 @@ enum type_t {
   t_UNQUOTE,
   t_NUMBER,
   t_ATOM,
-  t_END_OF_FILE,
   t_COMMENT,
   t_NEWLINE,
-  t_ERROR
+  t_TRUE,
+  t_FALSE,
+  t_DOT, // this should work in atom still
+  t_ERROR,
 };
 
 typedef struct {
@@ -45,3 +48,6 @@ typedef struct {
 void switch_ctx_to_file(FILE *file);
 void switch_ctx_to_stdin();
 void switch_ctx_inject_string(const char *str);
+
+#define TOKEN_BUFFER_SIZE 1024
+extern prim_t token_buffer[TOKEN_BUFFER_SIZE];
