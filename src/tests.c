@@ -160,7 +160,8 @@ void lisp_expression_to_string(L x, char *buffer, size_t buffer_size) {
 }
 
 L parse_this(const char *str) {
-
+  memset(token_buffer, 0, sizeof(token_buffer));
+  token_idx = 0;
   switch_ctx_inject_string(str);
 
   int i = 0;
@@ -225,6 +226,18 @@ void test_empty(void) {
   TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 ())"), true);
 }
 
+/* --- eval --- */
+L eval_this(const char *str) { return eval(parse_this(str), env); }
+
+void test_define(void) {
+  L result = eval_this("(define n 1)");
+  TEST_ASSERT_EQUAL(match_variable(result, "n"), true);
+  result = eval_this("(+ n 1)");
+  TEST_ASSERT_EQUAL(result, 2);
+  print(result);
+  putchar('\n');
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_simple1);
@@ -233,5 +246,7 @@ int main(void) {
   RUN_TEST(test_nested2);
   RUN_TEST(test_nested3);
   RUN_TEST(test_empty);
+
+  RUN_TEST(test_define);
   return UNITY_END();
 }

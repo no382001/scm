@@ -51,4 +51,5 @@ OPTIMIOZATIONN:
 - string type!
 - prim procc too
 
-- try getting tests running again?
+- i should have the same env in the tests too
+- f_load and f_read dont really work now
