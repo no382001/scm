@@ -40,6 +40,7 @@ void init_interpreter() {
 
 #ifndef UNITY_TEST
 extern int token_idx;
+
 int main(int argc, char **argv) {
   default_ctx.file = stdin;
   if (argc > 2 && strcmp(argv[1], "-e") == 0) {
@@ -97,6 +98,7 @@ int main(int argc, char **argv) {
       putchar('\n');
     }
 
+    i = 0;
     token_idx = 0;
     memset(token_buffer, 0, sizeof(token_buffer));
 

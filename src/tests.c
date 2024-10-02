@@ -9,6 +9,8 @@ void init_interpreter();
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
 extern int token_idx;
+extern jmp_buf jb;
+int doprint = 0;
 
 void setUp(void) {
   trace = 0;
@@ -25,7 +27,7 @@ void setUp(void) {
 
   init_interpreter();
 }
-int doprint = 0;
+
 void tearDown(void) {
   doprint = 0;
   hp = 0;
@@ -137,6 +139,16 @@ bool match_variable(L x, const char *str) {
     sprintf(debug_output, "comparing VECTOR: %s with %s", vec_str, str);
     printf("%s\n", debug_output);
     return strcmp(vec_str, str) == 0;
+  } else {
+    char buffer[50];
+    if (x == (int)x) {
+      snprintf(buffer, sizeof(buffer), "%d", (int)x);
+    } else {
+      snprintf(buffer, sizeof(buffer), "%f", x);
+    }
+    sprintf(debug_output, "comparing Atom: %s with %s", buffer, str);
+    printf("%s\n", debug_output);
+    return strcmp(buffer, str) == 0;
   }
 
   return false;
@@ -226,27 +238,290 @@ void test_empty(void) {
   TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 ())"), true);
 }
 
-/* --- eval --- */
-L eval_this(const char *str) { return eval(parse_this(str), env); }
+#define ASSERT_VAR(actual, expected)                                           \
+  TEST_ASSERT_EQUAL(match_variable(actual, expected), true);
+
+/* --- primitives --- */
+L eval_this(const char *str) {
+  L ret = nil;
+  int i = setjmp(jb);
+  if (i == 1){
+    return err;
+  } else {
+    ret = eval(parse_this(str), env); }
+ return ret;  
+}
 
 void test_define(void) {
   L result = eval_this("(define n 1)");
-  TEST_ASSERT_EQUAL(match_variable(result, "n"), true);
+  ASSERT_VAR(result, "n");
   result = eval_this("(+ n 1)");
-  TEST_ASSERT_EQUAL(result, 2);
-  print(result);
-  putchar('\n');
+  ASSERT_VAR(result, "2");
 }
+
+
+void test_LogicalTrue(void) {
+    L result = eval_this("(eq? 1 1)\n");
+    ASSERT_VAR(result, "#t");
+}
+
+void test_LogicalFalse(void) {
+    L result = eval_this("(eq? 1 2)\n");
+    ASSERT_VAR(result, "()");
+}
+
+void test_ConstructList(void) {
+    L result = eval_this("(cons 1 2)\n");
+    ASSERT_VAR(result, "(1 . 2)");
+}
+
+void test_CarOperation(void) {
+    L result = eval_this("(car (cons 1 2))\n");
+    TEST_ASSERT_EQUAL(1, result);
+}
+
+void test_CdrOperation(void) {
+    L result = eval_this("(cdr (cons 1 2))\n");
+    TEST_ASSERT_EQUAL(2, result);
+}
+
+void test_IfTrue(void) {
+    L result = eval_this("(if '(1) 1 2)\n");
+    TEST_ASSERT_EQUAL(1, result);
+}
+
+void test_IfFalse(void) {
+    L result = eval_this("(if () 1 2)\n");
+    TEST_ASSERT_EQUAL(2, result);
+}
+
+void test_DefineAndUseFunction(void) {
+    eval_this("(define square (lambda (x) (* x x)))\n");
+    L result = eval_this("(square 3)\n");
+    TEST_ASSERT_EQUAL(9, result);
+}
+
+void test_LetBinding(void) {
+    L result = eval_this("(let* (x 5) (y 3) (+ x y))\n");
+    TEST_ASSERT_EQUAL(8, result);
+}
+
+void test_UndefinedVariable(void) {
+    L result = eval_this("(+ a 1)\n");
+    TEST_ASSERT_EQUAL(err, result);
+    TEST_ASSERT_EQUAL(ASSOC_VALUE_N_FOUND, g_err_state.type);
+}
+
+void test_TypeMismatch(void) {
+    L result = eval_this("(+ 'a 1)\n");
+    TEST_ASSERT_EQUAL(err, result);
+
+    result = eval_this("(+ (quote a) 1)\n");
+    TEST_ASSERT_EQUAL(err, result);
+}
+
+void test_Quote(void) {
+    L result = eval_this("(quote a)\n");
+    ASSERT_VAR(result, "a");
+
+    result = eval_this("'b\n");
+    ASSERT_VAR(result, "b");
+}
+
+void test_ComplexExpression(void) {
+    L result = eval_this("(* (+ 2 3) (- 5 2))\n");
+    TEST_ASSERT_EQUAL(15, result);
+}
+
+void test_RecursiveFunction(void) {
+    eval_this("(define fact (lambda (n) (if (eq? n 1) 1 (* n (fact (- n 1))))))\n");
+    L result = eval_this("(fact 5)\n");
+    TEST_ASSERT_EQUAL(120, result);
+}
+
+void test_HigherOrderFunction(void) {
+    eval_this("(define apply-func (lambda (f x) (f x)))\n");
+    eval_this("(define inc (lambda (x) (+ x 1)))\n");
+    L result = eval_this("(apply-func inc 5)\n");
+    TEST_ASSERT_EQUAL(6, result);
+}
+
+void test_Addition(void) {
+    L result = eval_this("(+ 1 2 3 4)\n");
+    TEST_ASSERT_EQUAL(10, result);
+}
+
+void test_Subtraction(void) {
+    L result = eval_this("(- 10 2 3)\n");
+    TEST_ASSERT_EQUAL(5, result);
+}
+
+void test_Multiplication(void) {
+    L result = eval_this("(* 2 3 4)\n");
+    TEST_ASSERT_EQUAL(24, result);
+}
+
+void test_Division(void) {
+    L result = eval_this("(/ 24 3 2)\n");
+    TEST_ASSERT_EQUAL(4, result);
+}
+
+void test_Integer(void) {
+    L result = eval_this("(int 3.75)\n");
+    TEST_ASSERT_EQUAL(3, result);
+}
+
+void test_LessThan(void) {
+    L result = eval_this("(< 3 4)\n");
+    ASSERT_VAR(result, "#t");
+}
+
+void test_Or(void) {
+    L result = eval_this("(or () #t)\n");
+    ASSERT_VAR(result, "#t");
+
+    result = eval_this("(or () ())\n");
+    ASSERT_VAR(result, "()");
+}
+
+void test_And(void) {
+    L result = eval_this("(and () ())\n");
+    ASSERT_VAR(result, "()");
+
+    result = eval_this("(and 'a 'a)\n");
+    ASSERT_VAR(result, "a");
+}
+
+void test_Not(void) {
+    L result = eval_this("(not ())\n");
+    ASSERT_VAR(result, "#t");
+}
+
+void test_Cond(void) {
+    L result = eval_this("(cond ((eq? 1 2) 3) ((eq? 2 2) 4))\n");
+    TEST_ASSERT_EQUAL(4, result);
+}
+
+void test_CreateVector(void) {
+  L result = eval_this("(vector 1 2 3 4)\n");
+  ASSERT_VAR(result, "#(1 2 3 4)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_VectorRef(void) {
+  eval_this("(define v (vector 1 2 3 4))\n");
+  TEST_ASSERT_EQUAL(eval_this("(vector-ref v 0)\n"), 1);
+  TEST_ASSERT_EQUAL(eval_this("(vector-ref v 1)\n"), 2);
+  TEST_ASSERT_EQUAL(eval_this("(vector-ref v 2)\n"), 3);
+  TEST_ASSERT_EQUAL(eval_this("(vector-ref v 3)\n"), 4);
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_VectorSet(void) {
+  eval_this("(define v (vector 1 2 3 4))\n");
+  eval_this("(vector-set! v 1 42)\n");
+  TEST_ASSERT_EQUAL(eval_this("(vector-ref v 1)\n"), 42);
+
+  eval_this("(vector-set! v 0 100)\n");
+  TEST_ASSERT_EQUAL(eval_this("(vector-ref v 0)\n"), 100);
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_VectorLength(void) {
+  eval_this("(define v (vector 1 2 3 4))\n");
+  TEST_ASSERT_EQUAL(eval_this("(vector-length v)\n"), 4);
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_QuasiquoteSimple(void) {
+  L result = eval_this("`(1 2 3)\n");
+  ASSERT_VAR(result, "(1 2 3)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_QuasiquoteWithUnquote(void) {
+  L result = eval_this("`(1 2 ,(+ 3 4) 5)\n");
+  ASSERT_VAR(result, "(1 2 7 5)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_NestedQuasiquoteWithUnquote(void) {
+  L result = eval_this("`(1 ` , (+ 2 3) ,(+ 4 5))\n");
+  ASSERT_VAR(result, "(1 (quasiquote (unquote (+ 2 3))) 9)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+
+  result = eval_this("`(1 ` ,(+ 2 3) ,(+ 4 5))\n");
+  ASSERT_VAR(result, "(1 (quasiquote (unquote (+ 2 3))) 9)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+
+  result = eval_this("`(1 `,(+ 2 3) ,(+ 4 5))\n");
+  ASSERT_VAR(result, "(1 (quasiquote (unquote (+ 2 3))) 9)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+
+  result = eval_this("(define n 1)\n");
+  result = eval_this("`(+ 1 ,n)\n");
+  ASSERT_VAR(result, "(+ 1 1)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+void test_UnquoteWithoutQuasiquote(void) {
+  L result = eval_this(",(+ 2 3)\n");
+  TEST_ASSERT_EQUAL(g_err_state.type, UNQUOTE_OUTSIDE_QUASIQUOTE);
+}
+
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_simple1);
-  RUN_TEST(test_simple2);
-  RUN_TEST(test_nested1);
-  RUN_TEST(test_nested2);
-  RUN_TEST(test_nested3);
-  RUN_TEST(test_empty);
+  
+   // simple arithmetic tests
+  RUN_TEST(test_Addition);
+  RUN_TEST(test_Subtraction);
+  RUN_TEST(test_Multiplication);
+  RUN_TEST(test_Division);
+  RUN_TEST(test_Integer);
 
+  // logical operations
+  RUN_TEST(test_LogicalTrue);
+  RUN_TEST(test_LogicalFalse);
+  RUN_TEST(test_LessThan);
+  RUN_TEST(test_Or);
+  RUN_TEST(test_And);
+  RUN_TEST(test_Not);
+
+  // control flow and conditions
+  RUN_TEST(test_IfTrue);
+  RUN_TEST(test_IfFalse);
+  RUN_TEST(test_Cond);
+
+  // functions and higher-order functions
+  RUN_TEST(test_DefineAndUseFunction);
+  RUN_TEST(test_HigherOrderFunction);
+  RUN_TEST(test_RecursiveFunction);
+
+  // variable definitions and scope
   RUN_TEST(test_define);
+  RUN_TEST(test_LetBinding);
+  RUN_TEST(test_UndefinedVariable);
+
+  // list operations
+  RUN_TEST(test_ConstructList);
+  RUN_TEST(test_CarOperation);
+  RUN_TEST(test_CdrOperation);
+
+  RUN_TEST(test_ComplexExpression);
+
+  RUN_TEST(test_TypeMismatch);
+
+  RUN_TEST(test_CreateVector);
+  RUN_TEST(test_VectorRef);
+  RUN_TEST(test_VectorSet);
+  RUN_TEST(test_VectorLength);
+
+  RUN_TEST(test_Quote);
+  RUN_TEST(test_QuasiquoteSimple);
+  RUN_TEST(test_QuasiquoteWithUnquote);
+  RUN_TEST(test_NestedQuasiquoteWithUnquote);
+  RUN_TEST(test_UnquoteWithoutQuasiquote);
+
   return UNITY_END();
 }
