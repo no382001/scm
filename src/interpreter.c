@@ -1,21 +1,21 @@
 #include "interpreter.h"
 
-L box(I t, I i) {
-  L x;
+expr_t box(tag_t t, tag_t i) {
+  expr_t x;
   *(unsigned long long *)&x = (unsigned long long)t << 48 | i;
   return x;
 }
 
-I ord(L x) { return *(unsigned long long *)&x; }
+tag_t ord(expr_t x) { return *(unsigned long long *)&x; }
 
-L num(L n) { return n; }
+expr_t num(expr_t n) { return n; }
 
-I equ(L x, L y) {
+tag_t equ(expr_t x, expr_t y) {
   return *(unsigned long long *)&x == *(unsigned long long *)&y;
 }
 
-L atom(const char *s) {
-  I i = 0;
+expr_t atom(const char *s) {
+  tag_t i = 0;
   while (i < hp && strcmp(A + i, s)) /* search matching atom name */
     i += strlen(A + i) + 1;
   if (i == hp && (hp += strlen(strcpy(A + i, s)) + 1) >
@@ -27,9 +27,9 @@ L atom(const char *s) {
   return box(ATOM, i);
 }
 
-L macro(L v, L x) { return box(MACR, ord(cons(v, x))); }
+expr_t macro(expr_t v, expr_t x) { return box(MACR, ord(cons(v, x))); }
 
-L cons(L x, L y) {
+expr_t cons(expr_t x, expr_t y) {
   cell[--sp] = x; /* push car of x  */
   cell[--sp] = y; /* push cdr of y */
   if (hp > sp << 3) {
@@ -46,24 +46,24 @@ cell[20293] = 2
 cell[20294] = ()
 -> (vector 1 1)
 */
-L vector(I size) {
-  L vec = box(VECTOR, sp);
+expr_t vector(tag_t size) {
+  expr_t vec = box(VECTOR, sp);
   cell[--sp] = size;
-  for (I i = 0; i < size; ++i) {
+  for (tag_t i = 0; i < size; ++i) {
     cell[--sp] = nil;
   }
   return vec;
 }
 
-L vector_ref(L vec, I index) {
+expr_t vector_ref(expr_t vec, tag_t index) {
   if (T(vec) != VECTOR) {
     g_err_state.type = VECTOR_FN_NOT_A_VECTOR;
     g_err_state.box = vec;
     return err;
   }
 
-  I start = ord(vec);
-  I size = cell[start - 1];
+  tag_t start = ord(vec);
+  tag_t size = cell[start - 1];
 
   if (index >= size || index < 0) {
     g_err_state.type = VECTOR_FN_INDEX_OOB;
@@ -73,15 +73,15 @@ L vector_ref(L vec, I index) {
   return cell[start - 1 - index - 1];
 }
 
-L vector_set(L vec, I index, L value) {
+expr_t vector_set(expr_t vec, tag_t index, expr_t value) {
   if (T(vec) != VECTOR) {
     g_err_state.type = VECTOR_FN_NOT_A_VECTOR;
     g_err_state.box = vec;
     return err;
   }
 
-  I start = ord(vec);
-  I size = cell[start - 1];
+  tag_t start = ord(vec);
+  tag_t size = cell[start - 1];
 
   if (index >= size || index < 0) {
     g_err_state.type = VECTOR_FN_INDEX_OOB;
@@ -93,7 +93,7 @@ L vector_set(L vec, I index, L value) {
   return vec;
 }
 
-L vector_length(L vec) {
+expr_t vector_length(expr_t vec) {
   if (T(vec) != VECTOR) {
     g_err_state.type = VECTOR_FN_NOT_A_VECTOR;
     g_err_state.box = vec;
@@ -103,7 +103,7 @@ L vector_length(L vec) {
   return num(cell[ord(vec) - 1]);
 }
 
-L car(L p) {
+expr_t car(expr_t p) {
   if (T(p) == CONS || T(p) == CLOS || T(p) == MACR) {
     return cell[ord(p) + 1];
   } else {
@@ -113,7 +113,7 @@ L car(L p) {
   }
 }
 
-L cdr(L p) {
+expr_t cdr(expr_t p) {
   if (T(p) == CONS || T(p) == CLOS || T(p) == MACR) {
     return cell[ord(p)];
   } else {
@@ -123,13 +123,13 @@ L cdr(L p) {
   }
 }
 
-L pair(L v, L x, L e) { return cons(cons(v, x), e); }
+expr_t pair(expr_t v, expr_t x, expr_t e) { return cons(cons(v, x), e); }
 
-L closure(L v, L x, L e) {
+expr_t closure(expr_t v, expr_t x, expr_t e) {
   return box(CLOS, ord(pair(v, x, equ(e, env) ? nil : e)));
 }
 
-L assoc(L v, L e) {
+expr_t assoc(expr_t v, expr_t e) {
   while (T(e) == CONS && !equ(v, car(car(e)))) {
     e = cdr(e);
   }
@@ -142,12 +142,12 @@ L assoc(L v, L e) {
   }
 }
 
-I _not(L x) { return T(x) == NIL; }
+tag_t _not(expr_t x) { return T(x) == NIL; }
 
-I let(L x) { return T(x) != NIL && (x = cdr(x), T(x) != NIL); }
+tag_t let(expr_t x) { return T(x) != NIL && (x = cdr(x), T(x) != NIL); }
 
-L evlis(L t, L e) {
-  L s, *p;
+expr_t evlis(expr_t t, expr_t e) {
+  expr_t s, *p;
   for (s = nil, p = &s; T(t) == CONS; p = cell + sp, t = cdr(t))
     *p = cons(eval(car(t), e), nil);
   if (T(t) == ATOM)
@@ -155,28 +155,28 @@ L evlis(L t, L e) {
   return s;
 }
 
-L bind(L v, L t, L e) {
+expr_t bind(expr_t v, expr_t t, expr_t e) {
   return T(v) == NIL    ? e
          : T(v) == CONS ? bind(cdr(v), cdr(t), pair(car(v), car(t), e))
                         : pair(v, t, e);
 }
 
-L expand(L f, L t, L e) {
-  L bind_r = bind(car(f), t, env);
+expr_t expand(expr_t f, expr_t t, expr_t e) {
+  expr_t bind_r = bind(car(f), t, env);
   if (equ(bind_r, err)) {
     g_err_state.type = MACRO_EXPAND_BIND_FAILED;
     g_err_state.box = cdr(f);
     return err;
   }
 
-  L eval1_r = eval(cdr(f), bind_r);
+  expr_t eval1_r = eval(cdr(f), bind_r);
   if (equ(eval1_r, err)) {
     g_err_state.type = MACRO_EXPAND_BODY_EVAL_FAILED;
     g_err_state.box = cdr(f);
     return err;
   }
 
-  L eval2_r = eval(eval1_r, e);
+  expr_t eval2_r = eval(eval1_r, e);
   if (equ(eval2_r, err)) {
     g_err_state.type = MACRO_EXPAND_EXECUTION_FAILED;
     g_err_state.box = eval1_r;
@@ -185,12 +185,12 @@ L expand(L f, L t, L e) {
   return eval2_r;
 }
 
-void print(L x);
+void print(expr_t x);
 
-L eval(L x, L e) {
-  L in = x;
+expr_t eval(expr_t x, expr_t e) {
+  expr_t in = x;
   trace_depth++;
-  L result = step(x, e);
+  expr_t result = step(x, e);
   if (trace) {
     printf("[TRACE] %d\t", trace_depth);
     print(in);
@@ -208,9 +208,9 @@ L eval(L x, L e) {
   return result;
 }
 
-L step(L x, L e) {
+expr_t step(expr_t x, expr_t e) {
 
-  L f, v, d;
+  expr_t f, v, d;
   while (1) {
     if (T(x) == ATOM) {
       return assoc(x, e);
@@ -219,11 +219,11 @@ L step(L x, L e) {
       return x;
     }
 
-    L proc = x;          /* save the proc for error message */
+    expr_t proc = x;     /* save the proc for error message */
     f = eval(car(x), e); /* get proc sig */
 
     if (T(f) == MACR) {
-      L macro_args = cdr(x);
+      expr_t macro_args = cdr(x);
       x = expand(f, macro_args, e);
       return x;
     }
@@ -297,7 +297,7 @@ L step(L x, L e) {
 /* find the max heap reference among the used ATOM-tagged cells and adjust hp
  * accordingly */
 void gc() {
-  I i = sp = ord(env);
+  tag_t i = sp = ord(env);
   for (hp = 0; i < N; ++i)
     if (T(cell[i]) == ATOM && ord(cell[i]) > hp)
       hp = ord(cell[i]);

@@ -4,13 +4,13 @@
 #include "parser.h"
 #include "print.h"
 
-I ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc,
-  MACR = 0x7ffd, NOP = 0x7ffe, VECTOR = 0x7fff;
+tag_t ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc,
+      MACR = 0x7ffd, NOP = 0x7ffe, VECTOR = 0x7fff;
 
-L cell[N] = {0};
-I hp = 0;
-I sp = N;
-L nil, tru, nop, err, env = 0;
+expr_t cell[N] = {0};
+tag_t hp = 0;
+tag_t sp = N;
+expr_t nil, tru, nop, err, env = 0;
 
 prim_t token_buffer[TOKEN_BUFFER_SIZE] = {0};
 
@@ -18,7 +18,7 @@ ERROR_STATE g_err_state = {NONE, 0, 0};
 rcso_struct_t rcso_ctx = {0};
 int suppress_jumps, trace_depth, stepping = 0;
 int trace = 1;
-L T(L x) { return *(unsigned long long *)&x >> 48; }
+expr_t T(expr_t x) { return *(unsigned long long *)&x >> 48; }
 
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     }
 
     int jmpres = setjmp(jb);
-    L res = nop;
+    expr_t res = nop;
     if (jmpres == 1) {
       print_and_reset_error();
       gc();

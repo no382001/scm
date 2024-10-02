@@ -4,15 +4,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#define I unsigned
-#define L double
+typedef unsigned tag_t;
+typedef double expr_t;
+
 #define A (char *)cell
 #define N (1024 * 20)
 
-extern L cell[N];
-extern I hp, sp;
-extern I ATOM, PRIM, CONS, CLOS, NIL, MACR, NOP, VECTOR;
-extern L nil, tru, nop, err, env;
+extern expr_t cell[N];
+extern tag_t hp, sp;
+extern tag_t ATOM, PRIM, CONS, CLOS, NIL, MACR, NOP, VECTOR;
+extern expr_t nil, tru, nop, err, env;
 
 #include "../util/error_map.h"
 
@@ -49,8 +50,8 @@ typedef enum {
 
 typedef struct {
   ERROR_T type;
-  L box;
-  L proc;
+  expr_t box;
+  expr_t proc;
 } ERROR_STATE;
 
 extern ERROR_STATE g_err_state;
@@ -58,8 +59,7 @@ extern jmp_buf jb;
 
 typedef struct {
   const char *s;
-  L(*f)
-  (L, L *);
+  expr_t (*f)(expr_t, expr_t *);
   short t;
 } prim_procs_t;
 
@@ -68,106 +68,106 @@ extern prim_procs_t prim[];
 extern int suppress_jumps, trace_depth, trace, stepping;
 
 typedef struct {
-  L x;
-  L e;
+  expr_t x;
+  expr_t e;
 } rcso_struct_t;
 extern rcso_struct_t rcso_ctx;
 
 /* interpreter things */
 
-L T(L x);
-L box(I t, I i);
-I ord(L x);
-L num(L n);
-I equ(L x, L y);
-L atom(const char *s);
-L macro(L v, L x);
-L cons(L x, L y);
-L car(L p);
-L cdr(L p);
-L pair(L v, L x, L e);
-L closure(L v, L x, L e);
-L assoc(L v, L e);
-I _not(L x);
-I let(L x);
-L evlis(L t, L e);
+expr_t T(expr_t x);
+expr_t box(tag_t t, tag_t i);
+tag_t ord(expr_t x);
+expr_t num(expr_t n);
+tag_t equ(expr_t x, expr_t y);
+expr_t atom(const char *s);
+expr_t macro(expr_t v, expr_t x);
+expr_t cons(expr_t x, expr_t y);
+expr_t car(expr_t p);
+expr_t cdr(expr_t p);
+expr_t pair(expr_t v, expr_t x, expr_t e);
+expr_t closure(expr_t v, expr_t x, expr_t e);
+expr_t assoc(expr_t v, expr_t e);
+tag_t _not(expr_t x);
+tag_t let(expr_t x);
+expr_t evlis(expr_t t, expr_t e);
 
-L vector(I size);
-L vector_ref(L vec, I index);
-L vector_set(L vec, I index, L value);
-L vector_length(L vec);
-L car(L p);
-L cdr(L p);
-L pair(L v, L x, L e);
-L closure(L v, L x, L e);
-L assoc(L v, L e);
-I _not(L x);
-I let(L x);
-L evlis(L t, L e);
-L bind(L v, L t, L e);
-L expand(L f, L t, L e);
-L eval(L x, L e);
-L step(L x, L e);
+expr_t vector(tag_t size);
+expr_t vector_ref(expr_t vec, tag_t index);
+expr_t vector_set(expr_t vec, tag_t index, expr_t value);
+expr_t vector_length(expr_t vec);
+expr_t car(expr_t p);
+expr_t cdr(expr_t p);
+expr_t pair(expr_t v, expr_t x, expr_t e);
+expr_t closure(expr_t v, expr_t x, expr_t e);
+expr_t assoc(expr_t v, expr_t e);
+tag_t _not(expr_t x);
+tag_t let(expr_t x);
+expr_t evlis(expr_t t, expr_t e);
+expr_t bind(expr_t v, expr_t t, expr_t e);
+expr_t expand(expr_t f, expr_t t, expr_t e);
+expr_t eval(expr_t x, expr_t e);
+expr_t step(expr_t x, expr_t e);
 void gc();
 int print_and_reset_error();
 
 /* prim procs */
 
-L f_eval(L t, L *e);
-L f_quote(L t, L *_);
-L f_cons(L t, L *e);
-L f_car(L t, L *e);
-L f_cdr(L t, L *e);
-L f_add(L t, L *e);
-L f_sub(L t, L *e);
-L f_mul(L t, L *e);
-L f_div(L t, L *e);
-L f_int(L t, L *e);
-L f_lt(L t, L *e);
-L f_eq(L t, L *e);
-L f_not(L t, L *e);
-L f_or(L t, L *e);
-L f_and(L t, L *e);
-L f_cond(L t, L *e);
-L f_if(L t, L *e);
-L f_leta(L t, L *e);
-L f_letreca(L t, L *e);
-L f_let(L t, L *e);
-L f_lambda(L t, L *e);
-L f_define(L t, L *e);
-L f_macro(L t, L *e);
-L f_load(L t, L *e);
-L f_display(L t, L *e);
-L f_newline(L t, L *e);
-L f_begin(L t, L *e);
-L f_setq(L t, L *e);
-L f_trace(L x, L *e);
-L f_read(L t, L *e);
-L f_gc(L x, L *e);
-L f_rcrbcs(L x, L *e);
-L f_setcar(L t, L *e);
-L f_setcdr(L t, L *e);
-L f_atomq(L x, L *e);
-L f_numberq(L x, L *e);
-L f_primq(L x, L *e);
-L f_vector(L t, L *e);
-L f_list_primitives(L t, L *e);
-L f_vector_ref(L t, L *e);
-L f_vector_set(L t, L *e);
-L f_vector_length(L t, L *e);
-L f_unquote(L t, L *e);
-L f_quasiquote(L t, L *e);
-L eval_quasiquote(L x, int level);
+expr_t f_eval(expr_t t, expr_t *e);
+expr_t f_quote(expr_t t, expr_t *_);
+expr_t f_cons(expr_t t, expr_t *e);
+expr_t f_car(expr_t t, expr_t *e);
+expr_t f_cdr(expr_t t, expr_t *e);
+expr_t f_add(expr_t t, expr_t *e);
+expr_t f_sub(expr_t t, expr_t *e);
+expr_t f_mul(expr_t t, expr_t *e);
+expr_t f_div(expr_t t, expr_t *e);
+expr_t f_int(expr_t t, expr_t *e);
+expr_t f_lt(expr_t t, expr_t *e);
+expr_t f_eq(expr_t t, expr_t *e);
+expr_t f_not(expr_t t, expr_t *e);
+expr_t f_or(expr_t t, expr_t *e);
+expr_t f_and(expr_t t, expr_t *e);
+expr_t f_cond(expr_t t, expr_t *e);
+expr_t f_if(expr_t t, expr_t *e);
+expr_t f_leta(expr_t t, expr_t *e);
+expr_t f_letreca(expr_t t, expr_t *e);
+expr_t f_let(expr_t t, expr_t *e);
+expr_t f_lambda(expr_t t, expr_t *e);
+expr_t f_define(expr_t t, expr_t *e);
+expr_t f_macro(expr_t t, expr_t *e);
+expr_t f_load(expr_t t, expr_t *e);
+expr_t f_display(expr_t t, expr_t *e);
+expr_t f_newline(expr_t t, expr_t *e);
+expr_t f_begin(expr_t t, expr_t *e);
+expr_t f_setq(expr_t t, expr_t *e);
+expr_t f_trace(expr_t x, expr_t *e);
+expr_t f_read(expr_t t, expr_t *e);
+expr_t f_gc(expr_t x, expr_t *e);
+expr_t f_rcrbcs(expr_t x, expr_t *e);
+expr_t f_setcar(expr_t t, expr_t *e);
+expr_t f_setcdr(expr_t t, expr_t *e);
+expr_t f_atomq(expr_t x, expr_t *e);
+expr_t f_numberq(expr_t x, expr_t *e);
+expr_t f_primq(expr_t x, expr_t *e);
+expr_t f_vector(expr_t t, expr_t *e);
+expr_t f_list_primitives(expr_t t, expr_t *e);
+expr_t f_vector_ref(expr_t t, expr_t *e);
+expr_t f_vector_set(expr_t t, expr_t *e);
+expr_t f_vector_length(expr_t t, expr_t *e);
+expr_t f_unquote(expr_t t, expr_t *e);
+expr_t f_quasiquote(expr_t t, expr_t *e);
+expr_t eval_quasiquote(expr_t x, int level);
 
 /* builder */
 
 #include "parser.h"
 
-L read();
+expr_t read();
 prim_t look();
-I seeing(char c);
+tag_t seeing(char c);
 prim_t get();
 prim_t scan();
-L list();
-L parse_number_or_atom(const char *buf, int offset);
-L parse();
+expr_t list();
+expr_t parse_number_or_atom(const char *buf, int offset);
+expr_t parse();

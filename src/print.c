@@ -55,7 +55,7 @@ void print_token(prim_t token) {
   }
 }
 
-void print(L x) {
+void print(expr_t x) {
   if (T(x) == NIL)
     printf("()");
   else if (T(x) == ATOM)
@@ -67,12 +67,12 @@ void print(L x) {
   else if (T(x) == CLOS)
     printf("{%u}", ord(x));
   else if (T(x) == VECTOR) {
-    I start = ord(x);
+    tag_t start = ord(x);
     // printf("sp %d\n", start);
-    I size = cell[--start];
+    tag_t size = cell[--start];
     // printf("size %d\n", size);
     printf("#(");
-    for (I i = 0; i < size; ++i) {
+    for (tag_t i = 0; i < size; ++i) {
       print(cell[start - 1 - i]);
       if (i < size - 1) {
         printf(" ");
@@ -86,7 +86,7 @@ void print(L x) {
     printf("%.10lg", x);
 }
 
-void printlist(L t) {
+void printlist(expr_t t) {
   for (putchar('(');; putchar(' ')) {
     print(car(t));
     if (_not(t = cdr(t)))
@@ -103,7 +103,7 @@ void printlist(L t) {
 void print_stack(int n) {
   printf("Stack contents:\n");
   int c = 0;
-  for (I i = sp; i < N; i++) {
+  for (tag_t i = sp; i < N; i++) {
     if (c > n) {
       return;
     }
@@ -118,7 +118,7 @@ void print_stack(int n) {
 
 void print_heap() {
   printf("Heap contents:\n");
-  for (I i = 0; i < hp; i++) {
+  for (tag_t i = 0; i < hp; i++) {
     if (cell[i]) {
       printf("cell[%u] = ", i);
       print(cell[i]);

@@ -36,11 +36,11 @@ void tearDown(void) {
   token_idx = 0;
 }
 
-void printlist_to_buffer(L t, char *buffer, size_t buffer_size);
-void lisp_expression_to_string(L x, char *buffer, size_t buffer_size);
+void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size);
+void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size);
 
 // look aat this fucking mess up here
-void print_to_buffer(L x, char *buffer, size_t buffer_size) {
+void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
   if (T(x) == NIL) {
     snprintf(buffer, buffer_size, "()");
   } else if (T(x) == ATOM) {
@@ -52,11 +52,11 @@ void print_to_buffer(L x, char *buffer, size_t buffer_size) {
   } else if (T(x) == CLOS) {
     snprintf(buffer, buffer_size, "{%u}", ord(x));
   } else if (T(x) == VECTOR) {
-    I start = ord(x);
-    I size = cell[--start];
+    tag_t start = ord(x);
+    tag_t size = cell[--start];
     size_t offset = 0;
     offset += snprintf(buffer + offset, buffer_size - offset, "#(");
-    for (I i = 0; i < size; ++i) {
+    for (tag_t i = 0; i < size; ++i) {
       char temp[128];
       print_to_buffer(cell[start - 1 - i], temp, sizeof(temp));
       offset += snprintf(buffer + offset, buffer_size - offset, "%s", temp);
@@ -72,7 +72,7 @@ void print_to_buffer(L x, char *buffer, size_t buffer_size) {
   }
 }
 
-void printlist_to_buffer(L t, char *buffer, size_t buffer_size) {
+void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size) {
   size_t offset = 0;
   offset += snprintf(buffer + offset, buffer_size - offset, "(");
 
@@ -98,7 +98,7 @@ void printlist_to_buffer(L t, char *buffer, size_t buffer_size) {
   snprintf(buffer + offset, buffer_size - offset, ")");
 }
 
-bool match_variable(L x, const char *str) {
+bool match_variable(expr_t x, const char *str) {
   char debug_output[256];
 
   if (T(x) == ATOM) {
@@ -108,7 +108,7 @@ bool match_variable(L x, const char *str) {
     return strcmp(var, str) == 0;
 
   } else if (T(x) == NIL) {
-    sprintf(debug_output, "comparing NIL with %s", str);
+    sprintf(debug_output, "comparing NIexpr_t with %s", str);
     printf("%s\n", debug_output);
     return strcmp("()", str) == 0;
 
@@ -119,12 +119,12 @@ bool match_variable(L x, const char *str) {
     printf("%s\n", debug_output);
     return strcmp(buffer, str) == 0;
   } else if (T(x) == VECTOR) {
-    I start = ord(x);
-    I size = cell[--start];
+    tag_t start = ord(x);
+    tag_t size = cell[--start];
 
     char vec_str[1024] = "#(";
 
-    for (I i = 0; i < size; ++i) {
+    for (tag_t i = 0; i < size; ++i) {
       char elem_str[128];
       lisp_expression_to_string(cell[start - 1 - i], elem_str,
                                 sizeof(elem_str));
@@ -154,7 +154,7 @@ bool match_variable(L x, const char *str) {
   return false;
 }
 
-void lisp_expression_to_string(L x, char *buffer, size_t buffer_size) {
+void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size) {
   if (T(x) == ATOM) {
     const char *var = A + ord(x);
     snprintf(buffer, buffer_size, "%s", var);
@@ -171,7 +171,7 @@ void lisp_expression_to_string(L x, char *buffer, size_t buffer_size) {
   }
 }
 
-L parse_this(const char *str) {
+expr_t parse_this(const char *str) {
   memset(token_buffer, 0, sizeof(token_buffer));
   token_idx = 0;
   switch_ctx_inject_string(str);
@@ -207,34 +207,34 @@ L parse_this(const char *str) {
 /* --- parsing --- */
 
 void test_simple1(void) {
-  L result = parse_this("(+ 1 1)\n");
+  expr_t result = parse_this("(+ 1 1)\n");
   TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 1)"), true);
 }
 
 void test_simple2(void) {
-  L result = parse_this("(+ 1 2 3)\n");
+  expr_t result = parse_this("(+ 1 2 3)\n");
   TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 2 3)"), true);
 }
 
 void test_nested1(void) {
-  L result = parse_this("(+ (* 2 3) (- 5 2))\n");
+  expr_t result = parse_this("(+ (* 2 3) (- 5 2))\n");
   TEST_ASSERT_EQUAL(match_variable(result, "(+ (* 2 3) (- 5 2))"), true);
 }
 
 void test_nested2(void) {
-  L result = parse_this("(+ (* 2 (+ 3 4)) (- 10 (+ 2 (* 1 3))))");
+  expr_t result = parse_this("(+ (* 2 (+ 3 4)) (- 10 (+ 2 (* 1 3))))");
   TEST_ASSERT_EQUAL(
       match_variable(result, "(+ (* 2 (+ 3 4)) (- 10 (+ 2 (* 1 3))))"), true);
 }
 
 void test_nested3(void) {
-  L result = parse_this("(+ (list 1 (list 2 3)) (list 4 5))");
+  expr_t result = parse_this("(+ (list 1 (list 2 3)) (list 4 5))");
   TEST_ASSERT_EQUAL(
       match_variable(result, "(+ (list 1 (list 2 3)) (list 4 5))"), true);
 }
 
 void test_empty(void) {
-  L result = parse_this("(+ 1 ())");
+  expr_t result = parse_this("(+ 1 ())");
   TEST_ASSERT_EQUAL(match_variable(result, "(+ 1 ())"), true);
 }
 
@@ -242,168 +242,169 @@ void test_empty(void) {
   TEST_ASSERT_EQUAL(match_variable(actual, expected), true);
 
 /* --- primitives --- */
-L eval_this(const char *str) {
-  L ret = nil;
+expr_t eval_this(const char *str) {
+  expr_t ret = nil;
   int i = setjmp(jb);
-  if (i == 1){
+  if (i == 1) {
     return err;
   } else {
-    ret = eval(parse_this(str), env); }
- return ret;  
+    ret = eval(parse_this(str), env);
+  }
+  return ret;
 }
 
 void test_define(void) {
-  L result = eval_this("(define n 1)");
+  expr_t result = eval_this("(define n 1)");
   ASSERT_VAR(result, "n");
   result = eval_this("(+ n 1)");
   ASSERT_VAR(result, "2");
 }
 
-
 void test_LogicalTrue(void) {
-    L result = eval_this("(eq? 1 1)\n");
-    ASSERT_VAR(result, "#t");
+  expr_t result = eval_this("(eq? 1 1)\n");
+  ASSERT_VAR(result, "#t");
 }
 
 void test_LogicalFalse(void) {
-    L result = eval_this("(eq? 1 2)\n");
-    ASSERT_VAR(result, "()");
+  expr_t result = eval_this("(eq? 1 2)\n");
+  ASSERT_VAR(result, "()");
 }
 
 void test_ConstructList(void) {
-    L result = eval_this("(cons 1 2)\n");
-    ASSERT_VAR(result, "(1 . 2)");
+  expr_t result = eval_this("(cons 1 2)\n");
+  ASSERT_VAR(result, "(1 . 2)");
 }
 
 void test_CarOperation(void) {
-    L result = eval_this("(car (cons 1 2))\n");
-    TEST_ASSERT_EQUAL(1, result);
+  expr_t result = eval_this("(car (cons 1 2))\n");
+  TEST_ASSERT_EQUAL(1, result);
 }
 
 void test_CdrOperation(void) {
-    L result = eval_this("(cdr (cons 1 2))\n");
-    TEST_ASSERT_EQUAL(2, result);
+  expr_t result = eval_this("(cdr (cons 1 2))\n");
+  TEST_ASSERT_EQUAL(2, result);
 }
 
 void test_IfTrue(void) {
-    L result = eval_this("(if '(1) 1 2)\n");
-    TEST_ASSERT_EQUAL(1, result);
+  expr_t result = eval_this("(if '(1) 1 2)\n");
+  TEST_ASSERT_EQUAL(1, result);
 }
 
 void test_IfFalse(void) {
-    L result = eval_this("(if () 1 2)\n");
-    TEST_ASSERT_EQUAL(2, result);
+  expr_t result = eval_this("(if () 1 2)\n");
+  TEST_ASSERT_EQUAL(2, result);
 }
 
 void test_DefineAndUseFunction(void) {
-    eval_this("(define square (lambda (x) (* x x)))\n");
-    L result = eval_this("(square 3)\n");
-    TEST_ASSERT_EQUAL(9, result);
+  eval_this("(define square (lambda (x) (* x x)))\n");
+  expr_t result = eval_this("(square 3)\n");
+  TEST_ASSERT_EQUAL(9, result);
 }
 
 void test_LetBinding(void) {
-    L result = eval_this("(let* (x 5) (y 3) (+ x y))\n");
-    TEST_ASSERT_EQUAL(8, result);
+  expr_t result = eval_this("(let* (x 5) (y 3) (+ x y))\n");
+  TEST_ASSERT_EQUAL(8, result);
 }
 
 void test_UndefinedVariable(void) {
-    L result = eval_this("(+ a 1)\n");
-    TEST_ASSERT_EQUAL(err, result);
-    TEST_ASSERT_EQUAL(ASSOC_VALUE_N_FOUND, g_err_state.type);
+  expr_t result = eval_this("(+ a 1)\n");
+  TEST_ASSERT_EQUAL(err, result);
+  TEST_ASSERT_EQUAL(ASSOC_VALUE_N_FOUND, g_err_state.type);
 }
 
 void test_TypeMismatch(void) {
-    L result = eval_this("(+ 'a 1)\n");
-    TEST_ASSERT_EQUAL(err, result);
+  expr_t result = eval_this("(+ 'a 1)\n");
+  TEST_ASSERT_EQUAL(err, result);
 
-    result = eval_this("(+ (quote a) 1)\n");
-    TEST_ASSERT_EQUAL(err, result);
+  result = eval_this("(+ (quote a) 1)\n");
+  TEST_ASSERT_EQUAL(err, result);
 }
 
 void test_Quote(void) {
-    L result = eval_this("(quote a)\n");
-    ASSERT_VAR(result, "a");
+  expr_t result = eval_this("(quote a)\n");
+  ASSERT_VAR(result, "a");
 
-    result = eval_this("'b\n");
-    ASSERT_VAR(result, "b");
+  result = eval_this("'b\n");
+  ASSERT_VAR(result, "b");
 }
 
 void test_ComplexExpression(void) {
-    L result = eval_this("(* (+ 2 3) (- 5 2))\n");
-    TEST_ASSERT_EQUAL(15, result);
+  expr_t result = eval_this("(* (+ 2 3) (- 5 2))\n");
+  TEST_ASSERT_EQUAL(15, result);
 }
 
 void test_RecursiveFunction(void) {
-    eval_this("(define fact (lambda (n) (if (eq? n 1) 1 (* n (fact (- n 1))))))\n");
-    L result = eval_this("(fact 5)\n");
-    TEST_ASSERT_EQUAL(120, result);
+  eval_this(
+      "(define fact (lambda (n) (if (eq? n 1) 1 (* n (fact (- n 1))))))\n");
+  expr_t result = eval_this("(fact 5)\n");
+  TEST_ASSERT_EQUAL(120, result);
 }
 
 void test_HigherOrderFunction(void) {
-    eval_this("(define apply-func (lambda (f x) (f x)))\n");
-    eval_this("(define inc (lambda (x) (+ x 1)))\n");
-    L result = eval_this("(apply-func inc 5)\n");
-    TEST_ASSERT_EQUAL(6, result);
+  eval_this("(define apply-func (lambda (f x) (f x)))\n");
+  eval_this("(define inc (lambda (x) (+ x 1)))\n");
+  expr_t result = eval_this("(apply-func inc 5)\n");
+  TEST_ASSERT_EQUAL(6, result);
 }
 
 void test_Addition(void) {
-    L result = eval_this("(+ 1 2 3 4)\n");
-    TEST_ASSERT_EQUAL(10, result);
+  expr_t result = eval_this("(+ 1 2 3 4)\n");
+  TEST_ASSERT_EQUAL(10, result);
 }
 
 void test_Subtraction(void) {
-    L result = eval_this("(- 10 2 3)\n");
-    TEST_ASSERT_EQUAL(5, result);
+  expr_t result = eval_this("(- 10 2 3)\n");
+  TEST_ASSERT_EQUAL(5, result);
 }
 
 void test_Multiplication(void) {
-    L result = eval_this("(* 2 3 4)\n");
-    TEST_ASSERT_EQUAL(24, result);
+  expr_t result = eval_this("(* 2 3 4)\n");
+  TEST_ASSERT_EQUAL(24, result);
 }
 
 void test_Division(void) {
-    L result = eval_this("(/ 24 3 2)\n");
-    TEST_ASSERT_EQUAL(4, result);
+  expr_t result = eval_this("(/ 24 3 2)\n");
+  TEST_ASSERT_EQUAL(4, result);
 }
 
 void test_Integer(void) {
-    L result = eval_this("(int 3.75)\n");
-    TEST_ASSERT_EQUAL(3, result);
+  expr_t result = eval_this("(int 3.75)\n");
+  TEST_ASSERT_EQUAL(3, result);
 }
 
 void test_LessThan(void) {
-    L result = eval_this("(< 3 4)\n");
-    ASSERT_VAR(result, "#t");
+  expr_t result = eval_this("(< 3 4)\n");
+  ASSERT_VAR(result, "#t");
 }
 
 void test_Or(void) {
-    L result = eval_this("(or () #t)\n");
-    ASSERT_VAR(result, "#t");
+  expr_t result = eval_this("(or () #t)\n");
+  ASSERT_VAR(result, "#t");
 
-    result = eval_this("(or () ())\n");
-    ASSERT_VAR(result, "()");
+  result = eval_this("(or () ())\n");
+  ASSERT_VAR(result, "()");
 }
 
 void test_And(void) {
-    L result = eval_this("(and () ())\n");
-    ASSERT_VAR(result, "()");
+  expr_t result = eval_this("(and () ())\n");
+  ASSERT_VAR(result, "()");
 
-    result = eval_this("(and 'a 'a)\n");
-    ASSERT_VAR(result, "a");
+  result = eval_this("(and 'a 'a)\n");
+  ASSERT_VAR(result, "a");
 }
 
 void test_Not(void) {
-    L result = eval_this("(not ())\n");
-    ASSERT_VAR(result, "#t");
+  expr_t result = eval_this("(not ())\n");
+  ASSERT_VAR(result, "#t");
 }
 
 void test_Cond(void) {
-    L result = eval_this("(cond ((eq? 1 2) 3) ((eq? 2 2) 4))\n");
-    TEST_ASSERT_EQUAL(4, result);
+  expr_t result = eval_this("(cond ((eq? 1 2) 3) ((eq? 2 2) 4))\n");
+  TEST_ASSERT_EQUAL(4, result);
 }
 
 void test_CreateVector(void) {
-  L result = eval_this("(vector 1 2 3 4)\n");
+  expr_t result = eval_this("(vector 1 2 3 4)\n");
   ASSERT_VAR(result, "#(1 2 3 4)");
   TEST_ASSERT_EQUAL(g_err_state.type, NONE);
 }
@@ -434,19 +435,19 @@ void test_VectorLength(void) {
 }
 
 void test_QuasiquoteSimple(void) {
-  L result = eval_this("`(1 2 3)\n");
+  expr_t result = eval_this("`(1 2 3)\n");
   ASSERT_VAR(result, "(1 2 3)");
   TEST_ASSERT_EQUAL(g_err_state.type, NONE);
 }
 
 void test_QuasiquoteWithUnquote(void) {
-  L result = eval_this("`(1 2 ,(+ 3 4) 5)\n");
+  expr_t result = eval_this("`(1 2 ,(+ 3 4) 5)\n");
   ASSERT_VAR(result, "(1 2 7 5)");
   TEST_ASSERT_EQUAL(g_err_state.type, NONE);
 }
 
 void test_NestedQuasiquoteWithUnquote(void) {
-  L result = eval_this("`(1 ` , (+ 2 3) ,(+ 4 5))\n");
+  expr_t result = eval_this("`(1 ` , (+ 2 3) ,(+ 4 5))\n");
   ASSERT_VAR(result, "(1 (quasiquote (unquote (+ 2 3))) 9)");
   TEST_ASSERT_EQUAL(g_err_state.type, NONE);
 
@@ -465,15 +466,14 @@ void test_NestedQuasiquoteWithUnquote(void) {
 }
 
 void test_UnquoteWithoutQuasiquote(void) {
-  L result = eval_this(",(+ 2 3)\n");
+  expr_t result = eval_this(",(+ 2 3)\n");
   TEST_ASSERT_EQUAL(g_err_state.type, UNQUOTE_OUTSIDE_QUASIQUOTE);
 }
 
-
 int main(void) {
   UNITY_BEGIN();
-  
-   // simple arithmetic tests
+
+  // simple arithmetic tests
   RUN_TEST(test_Addition);
   RUN_TEST(test_Subtraction);
   RUN_TEST(test_Multiplication);

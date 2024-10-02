@@ -16,8 +16,8 @@ prim_t next() { return token_buffer[++token_idx]; }
 // backwards and get
 prim_t prev() { return token_buffer[--token_idx]; }
 
-L list() {
-  L t = nil, *p = &t;
+expr_t list() {
+  expr_t t = nil, *p = &t;
   get(); // eat the '('
 
   while (1) {
@@ -47,7 +47,7 @@ L list() {
   }
 }
 
-L parse() {
+expr_t parse() {
   prim_t p = look();
 
   switch (p.t) {
