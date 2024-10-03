@@ -1,27 +1,57 @@
 #include "interpreter.h"
 #include "print.h"
 
-expr_t f_eval(expr_t t, expr_t *e) { return car(evlis(t, *e)); }
+#define car(expr) car(expr, ic2llcref)
+#define cdr(expr) cdr(expr, ic2llcref)
+#define cons(exp1, exp2) cons(exp1, exp2, ic2llcref)
+#define evlis(expr, env) evlis(expr, env, ctx)
+#define eval(expr, env) eval(expr, env, ctx)
+#define let(expr) let(expr, ic2llcref)
+#define pair(v, x, e) pair(v, x, e, ic2llcref)
+#define closure(v, x, e) closure(v, x, e, ctx);
+#define assoc(v, e) assoc(v, e, ic2llcref)
+#define print(x) print(x, ctx)
+#define macro(v, x) macro(v, x, ic2llcref)
+#define atom(s) atom(s, ic2llcref)
 
-expr_t f_quote(expr_t t, expr_t *_) { return car(t); }
+#define g_err_state ic_errstate
+#define err ic_c_err
+#define tru ic_c_tru
+#define nil ic_c_nil
+#define nop ic_c_nop
+#define cell ic_cell
+#define sp ic_sp
+#define env ic_env
+#define jb ic_jumps.jb
+#define rcso_ctx ic_rcso
 
-expr_t f_cons(expr_t t, expr_t *e) {
+expr_t f_eval(expr_t t, expr_t *e, interpreter_t *ctx) {
+  return car(evlis(t, *e));
+}
+
+expr_t f_quote(expr_t t, expr_t *_, interpreter_t *ctx) { return car(t); }
+
+expr_t f_cons(expr_t t, expr_t *e, interpreter_t *ctx) {
   return t = evlis(t, *e), cons(car(t), car(cdr(t)));
 }
 
-expr_t f_car(expr_t t, expr_t *e) { return car(car(evlis(t, *e))); }
+expr_t f_car(expr_t t, expr_t *e, interpreter_t *ctx) {
+  return car(car(evlis(t, *e)));
+}
 
-expr_t f_cdr(expr_t t, expr_t *e) { return cdr(car(evlis(t, *e))); }
+expr_t f_cdr(expr_t t, expr_t *e, interpreter_t *ctx) {
+  return cdr(car(evlis(t, *e)));
+}
 
 /* make a macro for prim proc also check for isnan*/
-expr_t f_add(expr_t t, expr_t *e) {
+expr_t f_add(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t n = car(t = evlis(t, *e));
   while (!_not(t = cdr(t)))
     n += car(t);
   return num(n);
 }
 
-expr_t f_sub(expr_t t, expr_t *e) {
+expr_t f_sub(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t n = car(t = evlis(t, *e));
   if (_not(cdr(t))) { // no second arg
     return num(-n);
@@ -31,14 +61,14 @@ expr_t f_sub(expr_t t, expr_t *e) {
   return num(n);
 }
 
-expr_t f_mul(expr_t t, expr_t *e) {
+expr_t f_mul(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t n = car(t = evlis(t, *e));
   while (!_not(t = cdr(t)))
     n *= car(t);
   return num(n);
 }
 
-expr_t f_div(expr_t t, expr_t *e) {
+expr_t f_div(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t n = car(t = evlis(t, *e));
   while (!_not(t = cdr(t))) {
     expr_t x = car(t);
@@ -53,49 +83,49 @@ expr_t f_div(expr_t t, expr_t *e) {
   return num(n);
 }
 
-expr_t f_int(expr_t t, expr_t *e) {
+expr_t f_int(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t n = car(evlis(t, *e));
   return n < 1e16 && n > -1e16 ? (long long)n : n;
 }
 
-expr_t f_lt(expr_t t, expr_t *e) {
+expr_t f_lt(expr_t t, expr_t *e, interpreter_t *ctx) {
   return t = evlis(t, *e), car(t) - car(cdr(t)) < 0 ? tru : nil;
 }
 
-expr_t f_eq(expr_t t, expr_t *e) {
+expr_t f_eq(expr_t t, expr_t *e, interpreter_t *ctx) {
   return t = evlis(t, *e), equ(car(t), car(cdr(t))) ? tru : nil;
 }
 
-expr_t f_not(expr_t t, expr_t *e) {
+expr_t f_not(expr_t t, expr_t *e, interpreter_t *ctx) {
   return _not(car(evlis(t, *e))) ? tru : nil;
 }
 
-expr_t f_or(expr_t t, expr_t *e) {
+expr_t f_or(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t x = nil;
   while (T(t) != NIL && _not(x = eval(car(t), *e)))
     t = cdr(t);
   return x;
 }
 
-expr_t f_and(expr_t t, expr_t *e) {
+expr_t f_and(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t x = nil;
   while (T(t) != NIL && !_not(x = eval(car(t), *e)))
     t = cdr(t);
   return x;
 }
 
-expr_t f_cond(expr_t t, expr_t *e) {
+expr_t f_cond(expr_t t, expr_t *e, interpreter_t *ctx) {
   while (T(t) != NIL && _not(eval(car(car(t)), *e)))
     t = cdr(t);
   return car(cdr(car(t)));
 }
 
-expr_t f_if(expr_t t, expr_t *e) {
+expr_t f_if(expr_t t, expr_t *e, interpreter_t *ctx) {
   return car(cdr(_not(eval(car(t), *e)) ? cdr(t) : t));
 }
 
 /* (let* (var1 expr1 ) (var2 expr2 ) ... (varn exprn ) expr) */
-expr_t f_leta(expr_t t, expr_t *e) {
+expr_t f_leta(expr_t t, expr_t *e, interpreter_t *ctx) {
   for (; let(t); t = cdr(t))
     *e = pair(car(car(t)), eval(car(cdr(car(t))), *e), *e);
   return car(t);
@@ -105,7 +135,8 @@ expr_t f_leta(expr_t t, expr_t *e) {
    letrec* name-value pair. like this: (letrec* (f (lambda (n) (if (< 1 n) (* n
    (f (- n 1))) 1))) (f 5))
 */
-expr_t f_letreca(expr_t t, expr_t *e) { // this also should only accept lambdas
+expr_t f_letreca(expr_t t, expr_t *e,
+                 interpreter_t *ctx) { // this also should only accept lambdas
   for (; let(t); t = cdr(t)) {
     *e = pair(car(car(t)), err, *e);
     cell[sp + 2] = eval(car(cdr(car(t))), *e);
@@ -114,20 +145,20 @@ expr_t f_letreca(expr_t t, expr_t *e) { // this also should only accept lambdas
 }
 
 /* evaluates all expressions first before binding the values */
-expr_t f_let(expr_t t, expr_t *e) {
+expr_t f_let(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t d = *e;
   for (; let(t); t = cdr(t))
     d = pair(car(car(t)), eval(car(cdr(car(t))), *e), d);
   return eval(car(t), d);
 }
 
-expr_t f_lambda(expr_t t, expr_t *e) {
+expr_t f_lambda(expr_t t, expr_t *e, interpreter_t *ctx) {
   return closure(car(t), car(cdr(t)), *e);
 }
 
-expr_t f_define(expr_t t, expr_t *e) {
+expr_t f_define(expr_t t, expr_t *e, interpreter_t *ctx) {
   if (!equ(assoc(car(t), env), err)) {
-    printf("[warn] '%s' aliased in ", A + ord(car(t)));
+    printf("[warn] '%s' aliased in ", ic_atomheap + ord(car(t)));
     print(t);
     printf("\n");
   }
@@ -135,9 +166,9 @@ expr_t f_define(expr_t t, expr_t *e) {
       NONE; // clear this, i should really refactor this whole eval thing
   g_err_state.box = nil;
 
-  suppress_jumps++; // FIX: get rid of this shit
+  ic_jumps.suppress_jumps++; // FIX: get rid of this shit
   expr_t res = eval(car(cdr(t)), *e);
-  suppress_jumps--;
+  ic_jumps.suppress_jumps--;
 
   if (equ(res, err)) {
     g_err_state.type = FUNCTION_DEF_IS_NOT_LAMBDA;
@@ -151,9 +182,11 @@ expr_t f_define(expr_t t, expr_t *e) {
   return car(t);
 }
 
-expr_t f_macro(expr_t t, expr_t *e) { return macro(car(t), car(cdr(t))); }
+expr_t f_macro(expr_t t, expr_t *e, interpreter_t *ctx) {
+  return macro(car(t), car(cdr(t)));
+}
 
-expr_t f_load(expr_t t, expr_t *e) {
+expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
   /*
   expr_t x = eval(car(t), *e);
   if (equ(x, err)) {
@@ -198,7 +231,7 @@ expr_t f_load(expr_t t, expr_t *e) {
   return nop;
 }
 
-expr_t f_display(expr_t t, expr_t *e) {
+expr_t f_display(expr_t t, expr_t *e, interpreter_t *ctx) {
   if (_not(t)) {
     g_err_state.type = DISPLAY_NO_ARG;
     return err;
@@ -214,7 +247,7 @@ expr_t f_display(expr_t t, expr_t *e) {
   return nop; // might fuck up the include macro
 }
 
-expr_t f_newline(expr_t t, expr_t *e) {
+expr_t f_newline(expr_t t, expr_t *e, interpreter_t *ctx) {
   if (!_not(t)) {
     g_err_state.type = NEWLINE_TAKES_NO_ARG;
     g_err_state.box = t;
@@ -224,7 +257,7 @@ expr_t f_newline(expr_t t, expr_t *e) {
   return nop; // might fuck up the include macro
 }
 
-expr_t f_begin(expr_t t, expr_t *e) {
+expr_t f_begin(expr_t t, expr_t *e, interpreter_t *ctx) {
   if (_not(t)) {
     g_err_state.type = BEGIN_NO_RETURN_VAL;
     g_err_state.box = t;
@@ -238,15 +271,15 @@ expr_t f_begin(expr_t t, expr_t *e) {
   return result;
 }
 
-expr_t f_setq(expr_t t, expr_t *e) {
+expr_t f_setq(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t v = car(t);
   expr_t x = eval(car(cdr(t)), *e);
-  expr_t env = *e;
-  while (T(env) == CONS && !equ(v, car(car(env)))) {
-    env = cdr(env);
+  expr_t _env = *e;
+  while (T(_env) == CONS && !equ(v, car(car(_env)))) {
+    _env = cdr(_env);
   }
-  if (T(env) == CONS) {
-    cell[ord(car(env))] = x;
+  if (T(_env) == CONS) {
+    cell[ord(car(_env))] = x;
     return v;
   } else {
     g_err_state.type = SETQ_VAR_N_FOUND;
@@ -255,7 +288,7 @@ expr_t f_setq(expr_t t, expr_t *e) {
   }
 }
 
-expr_t f_trace(expr_t x, expr_t *e) {
+expr_t f_trace(expr_t x, expr_t *e, interpreter_t *ctx) {
   expr_t t = car(x);
   expr_t s = car(cdr(x));
 
@@ -263,13 +296,13 @@ expr_t f_trace(expr_t x, expr_t *e) {
       ((int)num(s) != 0 && (int)num(s) != 1))
     return err;
 
-  trace = (int)num(t);
-  stepping = (int)num(s);
+  ic_trace.trace = (bool)num(t);
+  ic_trace.stepping = (bool)num(s);
 
   longjmp(jb, 1);
 }
 
-expr_t f_read(expr_t t, expr_t *e) {
+expr_t f_read(expr_t t, expr_t *e, interpreter_t *ctx) {
   /*
   expr_t x;
   char c = curr_ctx->see;
@@ -281,19 +314,19 @@ expr_t f_read(expr_t t, expr_t *e) {
   return nil;
 }
 
-expr_t f_gc(expr_t x, expr_t *e) {
-  gc();
+expr_t f_gc(expr_t x, expr_t *e, interpreter_t *ctx) {
+  gc(ctx);
   return nop;
 }
 
-expr_t f_rcrbcs(expr_t x, expr_t *e) {
+expr_t f_rcrbcs(expr_t x, expr_t *e, interpreter_t *ctx) {
   rcso_ctx.x = x;
   rcso_ctx.e = *e;
-  trace_depth = 0;
+  ic_trace.trace_depth = 0;
   longjmp(jb, 2);
 }
 
-expr_t f_setcar(expr_t t, expr_t *e) {
+expr_t f_setcar(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t p = car(t = evlis(t, *e));
   if (T(p) != CONS) {
     g_err_state.type = SETCAR_ARG_NOT_CONS;
@@ -304,7 +337,7 @@ expr_t f_setcar(expr_t t, expr_t *e) {
   return car(t);
 }
 
-expr_t f_setcdr(expr_t t, expr_t *e) {
+expr_t f_setcdr(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t p = car(t = evlis(t, *e));
   if (T(p) != CONS) {
     g_err_state.type = SETCDR_ARG_NOT_CONS;
@@ -315,12 +348,12 @@ expr_t f_setcdr(expr_t t, expr_t *e) {
   return car(t);
 }
 
-expr_t f_atomq(expr_t x, expr_t *e) {
+expr_t f_atomq(expr_t x, expr_t *e, interpreter_t *ctx) {
   expr_t r = car(x);
   return T(r) == ATOM ? tru : nil;
 }
 
-expr_t f_numberq(expr_t x, expr_t *e) {
+expr_t f_numberq(expr_t x, expr_t *e, interpreter_t *ctx) {
   x = eval(car(x), *e);
   if (T(x) != NIL && T(x) != ATOM && T(x) != PRIM && T(x) != CONS &&
       T(x) != MACR && T(x) != NOP) {
@@ -330,12 +363,12 @@ expr_t f_numberq(expr_t x, expr_t *e) {
   }
 }
 
-expr_t f_primq(expr_t x, expr_t *e) {
+expr_t f_primq(expr_t x, expr_t *e, interpreter_t *ctx) {
   expr_t r = eval(car(x), *e);
   return T(r) == PRIM ? tru : nil;
 }
 
-expr_t f_vector(expr_t t, expr_t *e) {
+expr_t f_vector(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t evaluated_list = evlis(t, *e);
   tag_t size = 0;
 
@@ -353,42 +386,40 @@ expr_t f_vector(expr_t t, expr_t *e) {
   return vec;
 }
 
-expr_t f_list_primitives(expr_t t, expr_t *e) {
+expr_t f_list_primitives(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t result = nil;
 
-  for (int i = 0; prim[i].s; ++i) {
-    result = cons(atom(prim[i].s), result);
+  for (int i = 0; ic_prim[i].s; ++i) {
+    result = cons(atom(ic_prim[i].s), result);
   }
 
   return result;
 }
 
-expr_t f_vector_ref(expr_t t, expr_t *e) {
+expr_t f_vector_ref(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t vec = car(evlis(t, *e));
   expr_t idx = car(cdr(evlis(t, *e)));
-  return vector_ref(vec, (tag_t)num(idx));
+  return vector_ref(vec, (tag_t)num(idx), ic2llcref);
 }
 
-expr_t f_vector_set(expr_t t, expr_t *e) {
+expr_t f_vector_set(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t vec = car(evlis(t, *e));
   expr_t idx = car(cdr(evlis(t, *e)));
   expr_t val = car(cdr(cdr(evlis(t, *e))));
-  return vector_set(vec, (tag_t)num(idx), val);
+  return vector_set(vec, (tag_t)num(idx), val, ic2llcref);
 }
 
-expr_t f_vector_length(expr_t t, expr_t *e) {
+expr_t f_vector_length(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t vec = car(evlis(t, *e));
-  return vector_length(vec);
+  return vector_length(vec, ic2llcref);
 }
 
-expr_t f_unquote(expr_t t, expr_t *e) {
+expr_t f_unquote(expr_t t, expr_t *e, interpreter_t *ctx) {
   g_err_state.type = UNQUOTE_OUTSIDE_QUASIQUOTE;
   return err;
 }
 
-expr_t f_quasiquote(expr_t t, expr_t *e) { return eval_quasiquote(car(t), 1); }
-
-expr_t eval_quasiquote(expr_t x, int level) {
+static expr_t eval_quasiquote(expr_t x, int level, interpreter_t *ctx) {
   if (T(x) != CONS) {
     return x;
   }
@@ -399,15 +430,21 @@ expr_t eval_quasiquote(expr_t x, int level) {
   if (T(head) == CONS && equ(car(head), atom("unquote"))) {
     if (level == 1) {
       expr_t result = eval(car(cdr(head)), env);
-      return cons(result, eval_quasiquote(tail, level));
+      return cons(result, eval_quasiquote(tail, level, ctx));
     } else {
-      return cons(head, eval_quasiquote(tail, level));
+      return cons(head, eval_quasiquote(tail, level, ctx));
     }
   }
 
   if (T(head) == CONS && equ(car(head), atom("quasiquote"))) {
-    return cons(eval_quasiquote(head, level + 1), eval_quasiquote(tail, level));
+    return cons(eval_quasiquote(head, level + 1, ctx),
+                eval_quasiquote(tail, level, ctx));
   }
 
-  return cons(eval_quasiquote(head, level), eval_quasiquote(tail, level));
+  return cons(eval_quasiquote(head, level, ctx),
+              eval_quasiquote(tail, level, ctx));
+}
+
+expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx) {
+  return eval_quasiquote(car(t), 1, ctx);
 }

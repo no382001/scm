@@ -55,25 +55,25 @@ void print_token(prim_t token) {
   }
 }
 
-void print(expr_t x) {
+void print(expr_t x, interpreter_t *ctx) {
   if (T(x) == NIL)
     printf("()");
   else if (T(x) == ATOM)
-    printf("%s", A + ord(x));
+    printf("%s", ic_atomheap + ord(x));
   else if (T(x) == PRIM)
-    printf("<%s>", prim[ord(x)].s);
+    printf("<%s>", ic_prim[ord(x)].s);
   else if (T(x) == CONS || T(x) == MACR)
-    printlist(x);
+    printlist(x, ctx);
   else if (T(x) == CLOS)
     printf("{%u}", ord(x));
   else if (T(x) == VECTOR) {
     tag_t start = ord(x);
     // printf("sp %d\n", start);
-    tag_t size = cell[--start];
+    tag_t size = ic_cell[--start];
     // printf("size %d\n", size);
     printf("#(");
     for (tag_t i = 0; i < size; ++i) {
-      print(cell[start - 1 - i]);
+      print(ic_cell[start - 1 - i], ctx);
       if (i < size - 1) {
         printf(" ");
       }
@@ -86,42 +86,43 @@ void print(expr_t x) {
     printf("%.10lg", x);
 }
 
-void printlist(expr_t t) {
+void printlist(expr_t t, interpreter_t *ctx) {
+  low_level_ctx_t *llc = &ctx->llc;
   for (putchar('(');; putchar(' ')) {
-    print(car(t));
-    if (_not(t = cdr(t)))
+    print(car(t, llc), ctx);
+    if (_not(t = cdr(t, llc)))
       break;
     if (T(t) != CONS) {
       printf(" . ");
-      print(t);
+      print(t, ctx);
       break;
     }
   }
   putchar(')');
 }
 
-void print_stack(int n) {
+void print_stack(int n, interpreter_t *ctx) {
   printf("Stack contents:\n");
   int c = 0;
-  for (tag_t i = sp; i < N; i++) {
+  for (tag_t i = ic_sp; i < N; i++) {
     if (c > n) {
       return;
     }
-    if (cell[i]) {
+    if (ic_cell[i]) {
       printf("cell[%u] = ", i);
-      print(cell[i]);
+      print(ic_cell[i], ctx);
       printf("\n");
       c++;
     }
   }
 }
 
-void print_heap() {
+void print_heap(interpreter_t *ctx) {
   printf("Heap contents:\n");
-  for (tag_t i = 0; i < hp; i++) {
-    if (cell[i]) {
+  for (tag_t i = 0; i < ic_hp; i++) {
+    if (ic_cell[i]) {
       printf("cell[%u] = ", i);
-      print(cell[i]);
+      print(ic_cell[i], ctx);
       printf("\n");
     }
   }

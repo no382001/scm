@@ -16,7 +16,16 @@ prim_t next() { return token_buffer[++token_idx]; }
 // backwards and get
 prim_t prev() { return token_buffer[--token_idx]; }
 
-expr_t list() {
+#define cons(exp1, exp2) cons(exp1, exp2, ic2llcref)
+#define atom(s) atom(s, ic2llcref)
+#define sp ic_sp
+#define cell ic_cell
+#define nil ic_c_nil
+#define tru ic_c_tru
+#define err ic_c_err
+#define nop ic_c_nop
+
+expr_t list(interpreter_t *ctx) {
   expr_t t = nil, *p = &t;
   get(); // eat the '('
 
@@ -33,8 +42,8 @@ expr_t list() {
     }
 
     if (token.t == t_DOT) {
-      get();        // eat dot
-      *p = parse(); // parse the expression after the dot
+      get();           // eat dot
+      *p = parse(ctx); // parse the expression after the dot
       if (look().t != t_RPAREN) {
         return err;
       }
@@ -42,12 +51,12 @@ expr_t list() {
       return t;
     }
 
-    *p = cons(parse(), nil);
+    *p = cons(parse(ctx), nil);
     p = &cell[sp--]; // move to the next cell in the list
   }
 }
 
-expr_t parse() {
+expr_t parse(interpreter_t *ctx) {
   prim_t p = look();
 
   switch (p.t) {
@@ -58,16 +67,16 @@ expr_t parse() {
     get();
     return nil;
   case t_LPAREN:
-    return list();
+    return list(ctx);
   case t_QUOTE:
     get();
-    return cons(atom("quote"), cons(parse(), nil));
+    return cons(atom("quote"), cons(parse(ctx), nil));
   case t_QUASIQUOTE:
     get();
-    return cons(atom("quasiquote"), cons(parse(), nil));
+    return cons(atom("quasiquote"), cons(parse(ctx), nil));
   case t_UNQUOTE:
     get();
-    return cons(atom("unquote"), cons(parse(), nil));
+    return cons(atom("unquote"), cons(parse(ctx), nil));
   case t_ATOM:
     get();
     return atom(p.str);

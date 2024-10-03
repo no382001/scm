@@ -5,73 +5,43 @@
 
 #include <stdbool.h>
 
-void init_interpreter();
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
 extern int token_idx;
+extern prim_t token_buffer[TOKEN_BUFFER_SIZE];
 extern jmp_buf jb;
+
 int doprint = 0;
+interpreter_t *ctx;
+
+void init_interpreter(interpreter_t *c);
+
+#define g_err_state ic_errstate
+#define err ic_c_err
+#define nop ic_c_nop
+#define nil ic_c_nil
+#define cdr(expr) cdr(expr, ic2llcref)
+#define car(expr) car(expr, ic2llcref)
+#define cell ic_atomheap
 
 void setUp(void) {
-  trace = 0;
+  ctx = (interpreter_t *)calloc(1, sizeof(interpreter_t));
+  init_interpreter(ctx);
 
-  g_err_state.type = NONE;
-  g_err_state.proc = 0;
-  g_err_state.box = 0;
-
-  curr_ctx->file = NULL;
-  memset(curr_ctx->buffer, 0, sizeof(curr_ctx->buffer));
-  curr_ctx->buf_pos = 0;
-  curr_ctx->buf_end = 0;
-  curr_ctx->curr = ' ';
-
-  init_interpreter();
+  token_idx = 0;
+  memset(token_buffer, 0, sizeof(token_buffer));
 }
 
 void tearDown(void) {
   doprint = 0;
-  hp = 0;
-  sp = N;
+  ic_sp = N;
+  ic_hp = 0;
   memset(token_buffer, 0, sizeof(token_buffer));
   token_idx = 0;
+  free(ctx);
+  ctx = NULL;
 }
-
-void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size);
-void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size);
-
-// look aat this fucking mess up here
-void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
-  if (T(x) == NIL) {
-    snprintf(buffer, buffer_size, "()");
-  } else if (T(x) == ATOM) {
-    snprintf(buffer, buffer_size, "%s", A + ord(x));
-  } else if (T(x) == PRIM) {
-    snprintf(buffer, buffer_size, "<%s>", prim[ord(x)].s);
-  } else if (T(x) == CONS || T(x) == MACR) {
-    printlist_to_buffer(x, buffer, buffer_size);
-  } else if (T(x) == CLOS) {
-    snprintf(buffer, buffer_size, "{%u}", ord(x));
-  } else if (T(x) == VECTOR) {
-    tag_t start = ord(x);
-    tag_t size = cell[--start];
-    size_t offset = 0;
-    offset += snprintf(buffer + offset, buffer_size - offset, "#(");
-    for (tag_t i = 0; i < size; ++i) {
-      char temp[128];
-      print_to_buffer(cell[start - 1 - i], temp, sizeof(temp));
-      offset += snprintf(buffer + offset, buffer_size - offset, "%s", temp);
-      if (i < size - 1) {
-        offset += snprintf(buffer + offset, buffer_size - offset, " ");
-      }
-    }
-    snprintf(buffer + offset, buffer_size - offset, ")");
-  } else if (T(x) == NOP) {
-    return;
-  } else {
-    snprintf(buffer, buffer_size, "%.10lg", x);
-  }
-}
-
+void print_to_buffer(expr_t x, char *buffer, size_t buffer_size);
 void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size) {
   size_t offset = 0;
   offset += snprintf(buffer + offset, buffer_size - offset, "(");
@@ -98,11 +68,55 @@ void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size) {
   snprintf(buffer + offset, buffer_size - offset, ")");
 }
 
+void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
+  if (T(x) == NIL) {
+    snprintf(buffer, buffer_size, "()");
+  } else if (T(x) == ATOM) {
+    snprintf(buffer, buffer_size, "%s", ic_atomheap + ord(x));
+  } else if (T(x) == PRIM) {
+    snprintf(buffer, buffer_size, "<%s>", ic_prim[ord(x)].s);
+  } else if (T(x) == CONS || T(x) == MACR) {
+    printlist_to_buffer(x, buffer, buffer_size);
+  } else if (T(x) == CLOS) {
+    snprintf(buffer, buffer_size, "{%u}", ord(x));
+  } else if (T(x) == VECTOR) {
+    tag_t start = ord(x);
+    tag_t size = ic_cell[--start];
+    size_t offset = 0;
+    offset += snprintf(buffer + offset, buffer_size - offset, "#(");
+    for (tag_t i = 0; i < size; ++i) {
+      char temp[128];
+      print_to_buffer(ic_cell[start - 1 - i], temp, sizeof(temp));
+      offset += snprintf(buffer + offset, buffer_size - offset, "%s", temp);
+      if (i < size - 1) {
+        offset += snprintf(buffer + offset, buffer_size - offset, " ");
+      }
+    }
+    snprintf(buffer + offset, buffer_size - offset, ")");
+  } else if (T(x) == NOP) {
+    return;
+  } else {
+    snprintf(buffer, buffer_size, "%.10lg", x);
+  }
+}
+expr_t parse_this(const char *str);
+
+expr_t eval_this(const char *str) {
+  expr_t ret = nil;
+  int i = setjmp(ic_jb);
+  if (i == 1) {
+    return err;
+  } else {
+    ret = eval(parse_this(str), ic_env, ctx);
+  }
+  return ret;
+}
+void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size);
 bool match_variable(expr_t x, const char *str) {
   char debug_output[256];
 
   if (T(x) == ATOM) {
-    const char *var = A + ord(x);
+    const char *var = ic_atomheap + ord(x);
     sprintf(debug_output, "comparing Atom: %s with %s", var, str);
     printf("%s\n", debug_output);
     return strcmp(var, str) == 0;
@@ -120,13 +134,13 @@ bool match_variable(expr_t x, const char *str) {
     return strcmp(buffer, str) == 0;
   } else if (T(x) == VECTOR) {
     tag_t start = ord(x);
-    tag_t size = cell[--start];
+    tag_t size = ic_cell[--start];
 
     char vec_str[1024] = "#(";
 
     for (tag_t i = 0; i < size; ++i) {
       char elem_str[128];
-      lisp_expression_to_string(cell[start - 1 - i], elem_str,
+      lisp_expression_to_string(ic_cell[start - 1 - i], elem_str,
                                 sizeof(elem_str));
 
       strcat(vec_str, elem_str);
@@ -156,7 +170,7 @@ bool match_variable(expr_t x, const char *str) {
 
 void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size) {
   if (T(x) == ATOM) {
-    const char *var = A + ord(x);
+    const char *var = ic_atomheap + ord(x);
     snprintf(buffer, buffer_size, "%s", var);
   } else if (T(x) == NIL) {
     snprintf(buffer, buffer_size, "()");
@@ -198,7 +212,7 @@ expr_t parse_this(const char *str) {
         print_token(token_buffer[i - 1]);
       }
     }
-    return parse();
+    return parse(ctx);
   }
 
   return nop;
@@ -242,16 +256,6 @@ void test_empty(void) {
   TEST_ASSERT_EQUAL(match_variable(actual, expected), true);
 
 /* --- primitives --- */
-expr_t eval_this(const char *str) {
-  expr_t ret = nil;
-  int i = setjmp(jb);
-  if (i == 1) {
-    return err;
-  } else {
-    ret = eval(parse_this(str), env);
-  }
-  return ret;
-}
 
 void test_define(void) {
   expr_t result = eval_this("(define n 1)");

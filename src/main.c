@@ -4,37 +4,41 @@
 #include "parser.h"
 #include "print.h"
 
-tag_t ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb, NIL = 0x7ffc,
-      MACR = 0x7ffd, NOP = 0x7ffe, VECTOR = 0x7fff;
+const tag_t ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb,
+            NIL = 0x7ffc, MACR = 0x7ffd, NOP = 0x7ffe, VECTOR = 0x7fff;
 
-expr_t cell[N] = {0};
-tag_t hp = 0;
-tag_t sp = N;
-expr_t nil, tru, nop, err, env = 0;
+// expr_t cell[N] = {0};
+// tag_t hp = 0;
+// tag_t sp = N;
+// expr_t nil, tru, nop, err, env = 0;
 
 prim_t token_buffer[TOKEN_BUFFER_SIZE] = {0};
 
-ERROR_STATE g_err_state = {NONE, 0, 0};
-rcso_struct_t rcso_ctx = {0};
-int suppress_jumps, trace_depth, stepping = 0;
-int trace = 1;
 expr_t T(expr_t x) { return *(unsigned long long *)&x >> 48; }
 
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
 extern int paren_count;
 
-jmp_buf jb;
+extern prim_procs_t prim[];
 
-void init_interpreter() {
-  int i;
-  nil = box(NIL, 0);
-  err = atom("ERR");
-  nop = box(NOP, 0);
-  tru = atom("#t");
-  env = pair(tru, tru, nil);
-  for (i = 0; prim[i].s; ++i) {
-    env = pair(atom(prim[i].s), box(PRIM, i), env);
+void init_interpreter(interpreter_t *ctx) {
+
+  ic_sp = N;
+  ic_hp = 0;
+
+  ic_c_nil = box(NIL, 0);
+  ic_c_err = atom("ERR", ic2llcref);
+  ic_c_nop = box(NOP, 0);
+  ic_c_tru = atom("#t", ic2llcref);
+
+  ic_env = pair(ic_c_tru, ic_c_tru, ic_c_nil, ic2llcref);
+
+  ic_prim = prim;
+
+  for (int i = 0; ic_prim[i].s; ++i) {
+    ic_env =
+        pair(atom(ic_prim[i].s, ic2llcref), box(PRIM, i), ic_env, ic2llcref);
   }
 }
 
@@ -53,10 +57,13 @@ int main(int argc, char **argv) {
     }
     switch_ctx_to_file(file);
   } else {
-    curr_ctx = &default_ctx;
+    curr_ctx =
+        &default_ctx; // this should just be a config you can never change
   }
 
-  init_interpreter();
+  interpreter_t intrp = {0};
+  init_interpreter(&intrp);
+  interpreter_t *ctx = &intrp;
 
   int i = 0;
   advance();
@@ -82,19 +89,19 @@ int main(int argc, char **argv) {
       print_token(token_buffer[i - 1]);
     }
 
-    int jmpres = setjmp(jb);
-    expr_t res = nop;
+    int jmpres = setjmp(ctx->llc.jumps.jb);
+    expr_t res = ic_c_nop;
     if (jmpres == 1) {
-      print_and_reset_error();
-      gc();
+      print_and_reset_error(ctx);
+      gc(ctx);
     } else if (jmpres == 2) {
-      res = eval(rcso_ctx.x, rcso_ctx.e);
+      res = eval(ic_rcso.x, ic_rcso.e, ctx);
     } else {
-      printf("\n%u>", sp - hp / 8);
-      res = eval(parse(), env);
+      printf("\n%u>", ic_sp - ic_hp / 8);
+      res = eval(parse(ctx), ic_env, ctx);
     }
-    if (!equ(err, res) && !equ(err, nop)) {
-      print(res);
+    if (!equ(ic_c_err, res) && !equ(ic_c_err, ic_c_nop)) {
+      print(res, ctx);
       putchar('\n');
     }
 
