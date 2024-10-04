@@ -389,11 +389,13 @@ expr_t step(expr_t x, expr_t e, interpreter_t *ctx) {
 
 int print_and_reset_error(interpreter_t *ctx) {
   if (g_err_state.type) {
-    printf("%u: ", sp);
-    // printf("|%s| ", ERROR_T_to_string[g_err_state.type]);
-    print(g_err_state.box);
-    printf(" @ ");
-    print(g_err_state.proc); // putchar('\n');
+    if (!ctx->noprint) {
+      printf("%u: ", sp);
+      // printf("|%s| ", ERROR_T_to_string[g_err_state.type]);
+      print(g_err_state.box);
+      printf(" @ ");
+      print(g_err_state.proc); // putchar('\n');
+    }
     g_err_state.type = NONE;
     g_err_state.box = 0;
     g_err_state.proc = 0;

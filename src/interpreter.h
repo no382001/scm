@@ -141,6 +141,8 @@ struct interpreter_t {
   trace_ctx_t trace;
   internal_t internals;
   bool nosetjmp; // setjmp is set externally
+  bool noprint;
+  bool noreseterr;
 };
 
 //#include "../util/error_map.h"
@@ -224,13 +226,3 @@ expr_t f_vector_set(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_vector_length(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_unquote(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx);
-/* builder */
-
-#include "parser.h"
-
-prim_t look();
-prim_t get();
-prim_t next();
-prim_t prev();
-expr_t list(interpreter_t *ctx);
-expr_t parse(interpreter_t *ctx);

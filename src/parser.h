@@ -53,4 +53,18 @@ void switch_ctx_to_stdin();
 void switch_ctx_inject_string(const char *str);
 
 #define TOKEN_BUFFER_SIZE 1024
-extern prim_t token_buffer[TOKEN_BUFFER_SIZE];
+
+typedef struct {
+  prim_t buffer[TOKEN_BUFFER_SIZE];
+  int idx;
+} token_buffer_t;
+
+#include "interpreter.h"
+
+void reseti(token_buffer_t *tb);
+prim_t look(token_buffer_t *tb);
+prim_t get(token_buffer_t *tb);
+prim_t next(token_buffer_t *tb);
+prim_t prev(token_buffer_t *tb);
+expr_t parse(interpreter_t *ctx, token_buffer_t *tb);
+expr_t list(interpreter_t *ctx, token_buffer_t *tb);

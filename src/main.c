@@ -42,11 +42,12 @@ void init_interpreter(interpreter_t *ctx) {
   }
 }
 
-expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size) {
+expr_t repl(interpreter_t *ctx, token_buffer_t *tb, size_t size) {
   expr_t result = ic_c_nop;
   int i = 0;
 
   while (1) {
+    reseti(tb);
     if (looking_at() == EOF) {
       if (curr_ctx->file != stdin) {
         switch_ctx_to_stdin(curr_ctx);
@@ -57,15 +58,20 @@ expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size) {
     }
 
     while (looking_at() != '\n' && looking_at() != EOF && i < size) {
-      token_buffer[i++] = scan();
-      print_token(token_buffer[i - 1]);
-      fflush(stdout);
+      tb->buffer[i++] = scan();
+      if (!ctx->noprint) {
+
+        print_token(tb->buffer[i - 1]);
+        fflush(stdout);
+      }
     }
 
     if (looking_at() == '\n' && i < size) {
       prim_t r = {.t = t_NEWLINE};
-      token_buffer[i++] = r;
-      print_token(token_buffer[i - 1]);
+      tb->buffer[i++] = r;
+      if (!ctx->noprint) {
+        print_token(tb->buffer[i - 1]);
+      }
     }
 
     if (i >= size) {
@@ -73,24 +79,30 @@ expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size) {
       break;
     }
 
-    int jmpres = ctx->nosetjmp ? setjmp(ctx->llc.jumps.jb) : 0;
+    int jmpres = !ctx->nosetjmp ? setjmp(ctx->llc.jumps.jb) : 0;
     if (jmpres == 1) {
-      print_and_reset_error(ctx);
-      gc(ctx);
+      if (!ctx->noreseterr){
+        print_and_reset_error(ctx);
+        gc(ctx);
+      }
     } else if (jmpres == 2) {
       result = eval(ic_rcso.x, ic_rcso.e, ctx);
     } else {
-      printf("\n%u>", ic_sp - ic_hp / 8);
-      result = eval(parse(ctx), ic_env, ctx);
+      if (!ctx->noprint) {
+        printf("\n%u>", ic_sp - ic_hp / 8);
+      }
+      result = eval(parse(ctx, tb), ic_env, ctx);
     }
 
     if (!equ(ic_c_err, result) && !equ(ic_c_err, ic_c_nop)) {
-      print(result, ctx);
-      putchar('\n');
+      if (!ctx->noprint) {
+        print(result, ctx);
+        putchar('\n');
+      }
     }
 
     i = 0;
-    memset(token_buffer, 0, size * sizeof(prim_t));
+    memset(tb->buffer, 0, size * sizeof(prim_t));
 
     if (curr_ctx->once) {
       break;
@@ -128,7 +140,8 @@ int main(int argc, char **argv) {
 
   advance();
 
-  repl(ctx, token_buffer, TOKEN_BUFFER_SIZE);
+  token_buffer_t tb = {0};
+  repl(ctx, &tb, TOKEN_BUFFER_SIZE);
 
   return 0;
 }

@@ -7,8 +7,6 @@
 
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
-extern int token_idx;
-extern prim_t token_buffer[TOKEN_BUFFER_SIZE];
 extern jmp_buf jb;
 
 int doprint = 0;
@@ -28,16 +26,14 @@ void setUp(void) {
   ctx = (interpreter_t *)calloc(1, sizeof(interpreter_t));
   init_interpreter(ctx);
   curr_ctx->once = true;
-  token_idx = 0;
-  memset(token_buffer, 0, sizeof(token_buffer));
+  ctx->noprint = true;
+  ctx->noreseterr = true;
 }
 
 void tearDown(void) {
   doprint = 0;
   ic_sp = N;
   ic_hp = 0;
-  memset(token_buffer, 0, sizeof(token_buffer));
-  token_idx = 0;
   free(ctx);
   ctx = NULL;
 }
@@ -178,46 +174,46 @@ void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size) {
 expr_t parse_this(const char *str);
 expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size);
 expr_t eval_this(const char *str) {
-  memset(token_buffer, 0, sizeof(token_buffer));
-  token_idx = 0;
+  token_buffer_t tb = {0};
   switch_ctx_inject_string(str);
   advance();
   int jmpres = setjmp(ic_jb);
   if (jmpres == 1) {
     return err;
   } else {
-    return repl(ctx, token_buffer, TOKEN_BUFFER_SIZE);
+    return repl(ctx, tb.buffer, TOKEN_BUFFER_SIZE);
   } // this does not handle case 2 where rcbs should be invoked
 }
 
+// only used for parsing tests
 expr_t parse_this(const char *str) {
-  memset(token_buffer, 0, sizeof(token_buffer));
-  token_idx = 0;
   switch_ctx_inject_string(str);
 
   int i = 0;
   advance();
+  token_buffer_t tb = {0};
   while (1) {
+    reseti(&tb);
     if (looking_at() == EOF) {
       break;
     }
 
     while (looking_at() != '\n' && looking_at() != EOF) {
-      token_buffer[i++] = scan();
+      tb.buffer[i++] = scan();
       if (doprint) {
-        print_token(token_buffer[i - 1]);
+        print_token(tb.buffer[i - 1]);
         fflush(stdout);
       }
     }
 
     if (looking_at() == '\n') {
       prim_t r = {.t = t_NEWLINE};
-      token_buffer[i++] = r;
+      tb.buffer[i++] = r;
       if (doprint) {
-        print_token(token_buffer[i - 1]);
+        print_token(tb.buffer[i - 1]);
       }
     }
-    return parse(ctx);
+    return parse(ctx, &tb);
   }
 
   return nop;

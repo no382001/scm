@@ -56,6 +56,9 @@ void print_token(prim_t token) {
 }
 
 void print(expr_t x, interpreter_t *ctx) {
+  if (ctx->noprint) {
+    return;
+  }
   if (T(x) == NIL)
     printf("()");
   else if (T(x) == ATOM)

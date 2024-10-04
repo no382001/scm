@@ -213,13 +213,11 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
   // printf("--> loading %s...\n",filename);
   switch_ctx_to_file(file);
 
-  // FIX: i dont like this at all why cant we do this in the main loop?
-  // had some problems ctx switching and clearing faults before... so this will
-  // do for now
+  token_buffer_t tb = {0};
   expr_t result = nil;
   while (looking_at() != EOF) {
     print_and_reset_error(ctx);
-    expr_t exp = parse(ctx);
+    expr_t exp = parse(ctx, &tb);
     if (!equ(exp, err) && !equ(exp, nop)) {
       result = eval(exp, env);
       print(result);
