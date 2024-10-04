@@ -27,7 +27,7 @@ void init_interpreter(interpreter_t *c);
 void setUp(void) {
   ctx = (interpreter_t *)calloc(1, sizeof(interpreter_t));
   init_interpreter(ctx);
-
+  curr_ctx->once = true;
   token_idx = 0;
   memset(token_buffer, 0, sizeof(token_buffer));
 }
@@ -41,6 +41,7 @@ void tearDown(void) {
   free(ctx);
   ctx = NULL;
 }
+
 void print_to_buffer(expr_t x, char *buffer, size_t buffer_size);
 void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size) {
   size_t offset = 0;
@@ -99,18 +100,7 @@ void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
     snprintf(buffer, buffer_size, "%.10lg", x);
   }
 }
-expr_t parse_this(const char *str);
 
-expr_t eval_this(const char *str) {
-  expr_t ret = nil;
-  int i = setjmp(ic_jb);
-  if (i == 1) {
-    return err;
-  } else {
-    ret = eval(parse_this(str), ic_env, ctx);
-  }
-  return ret;
-}
 void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size);
 bool match_variable(expr_t x, const char *str) {
   char debug_output[256];
@@ -183,6 +173,21 @@ void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size) {
     // for numbers or other types
     snprintf(buffer, buffer_size, "%.10g", x);
   }
+}
+
+expr_t parse_this(const char *str);
+expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size);
+expr_t eval_this(const char *str) {
+  memset(token_buffer, 0, sizeof(token_buffer));
+  token_idx = 0;
+  switch_ctx_inject_string(str);
+  advance();
+  int jmpres = setjmp(ic_jb);
+  if (jmpres == 1) {
+    return err;
+  } else {
+    return repl(ctx, token_buffer, TOKEN_BUFFER_SIZE);
+  } // this does not handle case 2 where rcbs should be invoked
 }
 
 expr_t parse_this(const char *str) {

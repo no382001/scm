@@ -42,6 +42,67 @@ void init_interpreter(interpreter_t *ctx) {
   }
 }
 
+expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size) {
+  expr_t result = ic_c_nop;
+  int i = 0;
+
+  while (1) {
+    if (looking_at() == EOF) {
+      if (curr_ctx->file != stdin) {
+        switch_ctx_to_stdin(curr_ctx);
+        flush();
+      } else {
+        break;
+      }
+    }
+
+    while (looking_at() != '\n' && looking_at() != EOF && i < size) {
+      token_buffer[i++] = scan();
+      print_token(token_buffer[i - 1]);
+      fflush(stdout);
+    }
+
+    if (looking_at() == '\n' && i < size) {
+      prim_t r = {.t = t_NEWLINE};
+      token_buffer[i++] = r;
+      print_token(token_buffer[i - 1]);
+    }
+
+    if (i >= size) {
+      printf("token buffer overflow. increase buffer size!\n");
+      break;
+    }
+
+    int jmpres = ctx->nosetjmp ? setjmp(ctx->llc.jumps.jb) : 0;
+    if (jmpres == 1) {
+      print_and_reset_error(ctx);
+      gc(ctx);
+    } else if (jmpres == 2) {
+      result = eval(ic_rcso.x, ic_rcso.e, ctx);
+    } else {
+      printf("\n%u>", ic_sp - ic_hp / 8);
+      result = eval(parse(ctx), ic_env, ctx);
+    }
+
+    if (!equ(ic_c_err, result) && !equ(ic_c_err, ic_c_nop)) {
+      print(result, ctx);
+      putchar('\n');
+    }
+
+    i = 0;
+    memset(token_buffer, 0, size * sizeof(prim_t));
+
+    if (curr_ctx->once) {
+      break;
+    }
+
+    flush();
+    advance();
+  }
+
+  return result;
+}
+
 #ifndef UNITY_TEST
 extern int token_idx;
 
@@ -65,56 +126,10 @@ int main(int argc, char **argv) {
   init_interpreter(&intrp);
   interpreter_t *ctx = &intrp;
 
-  int i = 0;
   advance();
-  while (1) {
-    if (looking_at() == EOF) {
-      if (curr_ctx->file != stdin) {
-        switch_ctx_to_stdin(curr_ctx);
-        flush();
-      } else {
-        break;
-      }
-    }
 
-    while (looking_at() != '\n' && looking_at() != EOF) {
-      token_buffer[i++] = scan();
-      print_token(token_buffer[i - 1]);
-      fflush(stdout);
-    }
+  repl(ctx, token_buffer, TOKEN_BUFFER_SIZE);
 
-    if (looking_at() == '\n') {
-      prim_t r = {.t = t_NEWLINE};
-      token_buffer[i++] = r;
-      print_token(token_buffer[i - 1]);
-    }
-
-    int jmpres = setjmp(ctx->llc.jumps.jb);
-    expr_t res = ic_c_nop;
-    if (jmpres == 1) {
-      print_and_reset_error(ctx);
-      gc(ctx);
-    } else if (jmpres == 2) {
-      res = eval(ic_rcso.x, ic_rcso.e, ctx);
-    } else {
-      printf("\n%u>", ic_sp - ic_hp / 8);
-      res = eval(parse(ctx), ic_env, ctx);
-    }
-    if (!equ(ic_c_err, res) && !equ(ic_c_err, ic_c_nop)) {
-      print(res, ctx);
-      putchar('\n');
-    }
-
-    i = 0;
-    token_idx = 0;
-    memset(token_buffer, 0, sizeof(token_buffer));
-
-    flush();
-    advance();
-  }
-
-  printf("size: %d\n", i);
   return 0;
 }
-
 #endif

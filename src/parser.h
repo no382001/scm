@@ -1,5 +1,6 @@
 #pragma once
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,8 +44,10 @@ typedef struct {
   int buf_pos;
   int buf_end;
   char curr;
+  bool once; // parse only one line
 } parse_ctx;
 
+parse_ctx *deep_copy_parse_ctx(const parse_ctx *src);
 void switch_ctx_to_file(FILE *file);
 void switch_ctx_to_stdin();
 void switch_ctx_inject_string(const char *str);

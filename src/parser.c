@@ -5,6 +5,23 @@ parse_ctx default_ctx = {
 
 parse_ctx *curr_ctx = &default_ctx;
 
+parse_ctx *deep_copy_parse_ctx(const parse_ctx *src) {
+  parse_ctx *new_ctx = malloc(sizeof(parse_ctx));
+  if (!new_ctx) {
+    return NULL;
+  }
+
+  new_ctx->buf_pos = src->buf_pos;
+  new_ctx->buf_end = src->buf_end;
+  new_ctx->curr = src->curr;
+
+  new_ctx->file = src->file;
+
+  memcpy(new_ctx->buffer, src->buffer, sizeof(src->buffer));
+
+  return new_ctx;
+}
+
 void switch_ctx_to_file(FILE *file) {
   curr_ctx->file = file;
   curr_ctx->buf_pos = 0;

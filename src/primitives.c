@@ -186,8 +186,11 @@ expr_t f_macro(expr_t t, expr_t *e, interpreter_t *ctx) {
   return macro(car(t), car(cdr(t)));
 }
 
+#include "parser.h"
+extern parse_ctx *curr_ctx;
+
 expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
-  /*
+
   expr_t x = eval(car(t), *e);
   if (equ(x, err)) {
     g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
@@ -195,17 +198,18 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
     return err;
   }
 
-  const char *filename = A + ord(x);
+  const char *filename = ic_atomheap + ord(x);
   FILE *file = fopen(filename, "r");
   if (!file) {
-    printf("Failed to open file: errno = %d\n", errno);
-    printf("Error message: %s\n", strerror(errno));
+    printf("failed to open file: errno = %d\n", errno);
+    printf("error message: %s\n", strerror(errno));
     g_err_state.type = LOAD_CANNOT_OPEN_FILE;
     g_err_state.box = x;
     return err;
   }
-  parsing_ctx old_context = *curr_ctx;
-  suppress_jumps++;
+
+  parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
+  ic_jumps.suppress_jumps++;
   // printf("--> loading %s...\n",filename);
   switch_ctx_to_file(file);
 
@@ -213,9 +217,9 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
   // had some problems ctx switching and clearing faults before... so this will
   // do for now
   expr_t result = nil;
-  while (curr_ctx->see != EOF) {
-    print_and_reset_error();
-    expr_t exp = Read();
+  while (looking_at() != EOF) {
+    print_and_reset_error(ctx);
+    expr_t exp = parse(ctx);
     if (!equ(exp, err) && !equ(exp, nop)) {
       result = eval(exp, env);
       print(result);
@@ -225,9 +229,9 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   // close file and restore previous context
   fclose(curr_ctx->file);
-  *curr_ctx = old_context;
-  suppress_jumps--;
-  */
+  curr_ctx = old_ctx;
+  ic_jumps.suppress_jumps--;
+
   return nop;
 }
 

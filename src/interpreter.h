@@ -140,6 +140,7 @@ struct interpreter_t {
   low_level_ctx_t llc;
   trace_ctx_t trace;
   internal_t internals;
+  bool nosetjmp; // setjmp is set externally
 };
 
 //#include "../util/error_map.h"
