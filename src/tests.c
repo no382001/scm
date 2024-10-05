@@ -38,9 +38,9 @@ void tearDown(void) {
   ctx = NULL;
 }
 
-void print_to_buffer(expr_t x, char *buffer, size_t buffer_size);
-void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size) {
-  size_t offset = 0;
+void print_to_buffer(expr_t x, char *buffer, int buffer_size);
+void printlist_to_buffer(expr_t t, char *buffer, int buffer_size) {
+  int offset = 0;
   offset += snprintf(buffer + offset, buffer_size - offset, "(");
 
   while (1) {
@@ -65,7 +65,7 @@ void printlist_to_buffer(expr_t t, char *buffer, size_t buffer_size) {
   snprintf(buffer + offset, buffer_size - offset, ")");
 }
 
-void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
+void print_to_buffer(expr_t x, char *buffer, int buffer_size) {
   if (T(x) == NIL) {
     snprintf(buffer, buffer_size, "()");
   } else if (T(x) == ATOM) {
@@ -79,7 +79,7 @@ void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
   } else if (T(x) == VECTOR) {
     tag_t start = ord(x);
     tag_t size = ic_cell[--start];
-    size_t offset = 0;
+    int offset = 0;
     offset += snprintf(buffer + offset, buffer_size - offset, "#(");
     for (tag_t i = 0; i < size; ++i) {
       char temp[128];
@@ -97,7 +97,7 @@ void print_to_buffer(expr_t x, char *buffer, size_t buffer_size) {
   }
 }
 
-void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size);
+void lisp_expression_to_string(expr_t x, char *buffer, int buffer_size);
 bool match_variable(expr_t x, const char *str) {
   char debug_output[256];
 
@@ -154,7 +154,7 @@ bool match_variable(expr_t x, const char *str) {
   return false;
 }
 
-void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size) {
+void lisp_expression_to_string(expr_t x, char *buffer, int buffer_size) {
   if (T(x) == ATOM) {
     const char *var = ic_atomheap + ord(x);
     snprintf(buffer, buffer_size, "%s", var);
@@ -172,7 +172,7 @@ void lisp_expression_to_string(expr_t x, char *buffer, size_t buffer_size) {
 }
 
 expr_t parse_this(const char *str);
-expr_t repl(interpreter_t *ctx, prim_t *token_buffer, size_t size);
+expr_t repl(interpreter_t *ctx, prim_t *token_buffer, int size);
 expr_t eval_this(const char *str) {
   token_buffer_t tb = {0};
   switch_ctx_inject_string(str);

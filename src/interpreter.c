@@ -192,35 +192,36 @@ tag_t let(expr_t x, low_level_ctx_t *ctx) {
 /* --------------------------------------------- */
 /*    interpreter_t functions                    */
 /* --------------------------------------------- */
-#define env ic_env
 #undef g_err_state
-#define g_err_state ic_errstate
-#undef pair
-#define pair(v, x, e) pair(v, x, e, ic2llcref)
 #undef nil
-#define nil ic_c_nil
 #undef cell
-#define cell ic_cell
 #undef sp
-#define sp ic_sp
 #undef hp
-#define hp ic_hp
+#undef err
+#undef jb
 #undef cons
+#undef pair
+#undef cdr
+#undef cons
+#undef car
+#undef bind
+
+#define g_err_state ic_errstate
+#define env ic_env
+#define nil ic_c_nil
+#define cell ic_cell
+#define err ic_c_err
+#define sp ic_sp
+#define hp ic_hp
+#define jb ic_jb
+#define pair(v, x, e) pair(v, x, e, ic2llcref)
 #define cons(exp1, exp2) cons(exp1, exp2, ic2llcref)
 #define assoc(v, e) assoc(v, e, ic2llcref)
-#undef err
-#define err ic_c_err
 #define step(expr, env) step(expr, env, ctx)
 #define print(p) print(p, ctx);
-#undef jb
-#define jb ic_jb
-#undef cdr
 #define cdr(expr) cdr(expr, ic2llcref)
-#undef cons
 #define cons(exp1, exp2) cons(exp1, exp2, ic2llcref)
-#undef car
 #define car(expr) car(expr, ic2llcref)
-#undef bind
 #define bind(v, t, e) bind(v, t, e, ic2llcref)
 
 expr_t eval(expr_t x, expr_t e, interpreter_t *ctx) {
@@ -387,14 +388,17 @@ expr_t step(expr_t x, expr_t e, interpreter_t *ctx) {
   }
 }
 
+#include "../util/enum_map.h"
+
 int print_and_reset_error(interpreter_t *ctx) {
   if (g_err_state.type) {
     if (!ctx->noprint) {
       printf("%u: ", sp);
-      // printf("|%s| ", ERROR_T_to_string[g_err_state.type]);
+      printf("|%s| ", error_code_t_to_string[g_err_state.type]);
       print(g_err_state.box);
       printf(" @ ");
-      print(g_err_state.proc); // putchar('\n');
+      print(g_err_state.proc);
+      putchar('\n');
     }
     g_err_state.type = NONE;
     g_err_state.box = 0;

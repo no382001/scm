@@ -3,7 +3,7 @@
 parse_ctx default_ctx = {
     .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .curr = ' '};
 
-parse_ctx *curr_ctx = &default_ctx;
+parse_ctx *curr_ctx = &default_ctx; // not cool
 
 parse_ctx *deep_copy_parse_ctx(const parse_ctx *src) {
   parse_ctx *new_ctx = malloc(sizeof(parse_ctx));
@@ -62,7 +62,7 @@ char looking_at() { return curr_ctx->curr; }
 
 char advance() {
   if (curr_ctx->file == stdin) {
-    curr_ctx->curr = getchar();
+    curr_ctx->curr = getchar(); // fuck
     return curr_ctx->curr;
   } else if (curr_ctx->buf_pos < curr_ctx->buf_end) {
     // advance the buffer

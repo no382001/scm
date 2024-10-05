@@ -186,9 +186,10 @@ expr_t f_macro(expr_t t, expr_t *e, interpreter_t *ctx) {
   return macro(car(t), car(cdr(t)));
 }
 
+#include "interpreter.h"
 #include "parser.h"
 extern parse_ctx *curr_ctx;
-
+expr_t repl(read_ctx_t *rc);
 expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   expr_t x = eval(car(t), *e);
@@ -209,28 +210,37 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
   }
 
   parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
-  ic_jumps.suppress_jumps++;
   // printf("--> loading %s...\n",filename);
   switch_ctx_to_file(file);
 
-  token_buffer_t tb = {0};
+  prim_t buff[TOKEN_BUFFER_SIZE] = {0};
+
+  ctx->nosetjmp = true;
+
+  jmp_buf savedjb;
+  // save the ic_jb
+  memcpy(savedjb, jb, sizeof(jmp_buf));
+
+  jmp_buf loadjb;
+  int jmpres = setjmp(loadjb);
+  // swap them
+  memcpy(jb, loadjb, sizeof(jmp_buf));
+
+  interpreter_t *const *ctx2 = &ctx;
+  read_ctx_t *rc = container_of(ctx2, read_ctx_t, ic);
+
   expr_t result = nil;
-  while (looking_at() != EOF) {
-    print_and_reset_error(ctx);
-    expr_t exp = parse(ctx, &tb);
-    if (!equ(exp, err) && !equ(exp, nop)) {
-      result = eval(exp, env);
-      print(result);
-      printf("\n");
-    }
+  if (jmpres == 0) {
+    result = repl(rc);
   }
 
-  // close file and restore previous context
+  // close file and restore previous contexts
+  ctx->nosetjmp = false;
   fclose(curr_ctx->file);
   curr_ctx = old_ctx;
-  ic_jumps.suppress_jumps--;
+  memcpy(jb, savedjb, sizeof(jmp_buf));
 
-  return nop;
+  return result; // this should probably be nop? or just this?
 }
 
 expr_t f_display(expr_t t, expr_t *e, interpreter_t *ctx) {

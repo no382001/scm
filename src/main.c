@@ -7,11 +7,6 @@
 const tag_t ATOM = 0x7ff8, PRIM = 0x7ff9, CONS = 0x7ffa, CLOS = 0x7ffb,
             NIL = 0x7ffc, MACR = 0x7ffd, NOP = 0x7ffe, VECTOR = 0x7fff;
 
-// expr_t cell[N] = {0};
-// tag_t hp = 0;
-// tag_t sp = N;
-// expr_t nil, tru, nop, err, env = 0;
-
 prim_t token_buffer[TOKEN_BUFFER_SIZE] = {0};
 
 expr_t T(expr_t x) { return *(unsigned long long *)&x >> 48; }
@@ -42,72 +37,93 @@ void init_interpreter(interpreter_t *ctx) {
   }
 }
 
-expr_t repl(interpreter_t *ctx, token_buffer_t *tb, size_t size) {
+bool read_single_line(read_ctx_t *rctx) {
+
+  if (looking_at() == EOF) {
+    if (curr_ctx->file != stdin) {
+      switch_ctx_to_stdin(curr_ctx);
+      flush();
+    } else {
+      return true;
+    }
+  }
+
+  while (looking_at() != '\n' && looking_at() != EOF &&
+         rctx->i < TOKEN_BUFFER_SIZE) {
+    rctx->tb->buffer[rctx->i++] = scan();
+
+    if (rctx->tb->buffer[rctx->i - 1].t == t_LPAREN) {
+      rctx->open_parens++;
+    } else if (rctx->tb->buffer[rctx->i - 1].t == t_RPAREN) {
+      rctx->open_parens--;
+    }
+
+    if (!rctx->ic->noprint) {
+      print_token(rctx->tb->buffer[rctx->i - 1]);
+      fflush(stdout);
+    }
+  }
+
+  if (looking_at() == '\n' && rctx->i < TOKEN_BUFFER_SIZE) {
+    prim_t r = {.t = t_NEWLINE};
+    rctx->tb->buffer[rctx->i++] = r;
+    if (!rctx->ic->noprint) {
+      print_token(rctx->tb->buffer[rctx->i - 1]);
+    }
+  }
+
+  return false;
+}
+
+expr_t repl(read_ctx_t *rc) {
+  interpreter_t *ctx = rc->ic; // need these for the macros
   expr_t result = ic_c_nop;
-  int i = 0;
-
   while (1) {
-    reseti(tb);
-    if (looking_at() == EOF) {
-      if (curr_ctx->file != stdin) {
-        switch_ctx_to_stdin(curr_ctx);
-        flush();
-      } else {
-        break;
-      }
+
+    if (rc->read(rc)) { // implementation defined
+      break;
+    }
+    if (rc->open_parens) {
+      flush();
+      advance();
+      continue;
     }
 
-    while (looking_at() != '\n' && looking_at() != EOF && i < size) {
-      tb->buffer[i++] = scan();
-      if (!ctx->noprint) {
-
-        print_token(tb->buffer[i - 1]);
-        fflush(stdout);
-      }
-    }
-
-    if (looking_at() == '\n' && i < size) {
-      prim_t r = {.t = t_NEWLINE};
-      tb->buffer[i++] = r;
-      if (!ctx->noprint) {
-        print_token(tb->buffer[i - 1]);
-      }
-    }
-
-    if (i >= size) {
+    if (rc->i >= TOKEN_BUFFER_SIZE) {
       printf("token buffer overflow. increase buffer size!\n");
       break;
     }
 
-    int jmpres = !ctx->nosetjmp ? setjmp(ctx->llc.jumps.jb) : 0;
+    int jmpres = !rc->ic->nosetjmp ? setjmp(rc->ic->llc.jumps.jb) : 0;
     if (jmpres == 1) {
-      if (!ctx->noreseterr){
-        print_and_reset_error(ctx);
-        gc(ctx);
+      if (!rc->ic->noreseterr) {
+        print_and_reset_error(rc->ic);
+        gc(rc->ic);
       }
     } else if (jmpres == 2) {
-      result = eval(ic_rcso.x, ic_rcso.e, ctx);
+      result = eval(ic_rcso.x, ic_rcso.e, rc->ic);
     } else {
-      if (!ctx->noprint) {
+      if (!rc->ic->noprint) {
         printf("\n%u>", ic_sp - ic_hp / 8);
       }
-      result = eval(parse(ctx, tb), ic_env, ctx);
+      result = eval(parse(rc->ic, rc->tb), ic_env, rc->ic);
     }
 
     if (!equ(ic_c_err, result) && !equ(ic_c_err, ic_c_nop)) {
-      if (!ctx->noprint) {
-        print(result, ctx);
+      if (!rc->ic->noprint) {
+        print(result, rc->ic);
         putchar('\n');
       }
     }
 
-    i = 0;
-    memset(tb->buffer, 0, size * sizeof(prim_t));
+    rc->i = 0;
+    memset(rc->tb->buffer, 0, TOKEN_BUFFER_SIZE * sizeof(prim_t));
 
     if (curr_ctx->once) {
       break;
     }
 
+    reseti(rc->tb);
     flush();
     advance();
   }
@@ -136,12 +152,12 @@ int main(int argc, char **argv) {
 
   interpreter_t intrp = {0};
   init_interpreter(&intrp);
-  interpreter_t *ctx = &intrp;
 
   advance();
 
   token_buffer_t tb = {0};
-  repl(ctx, &tb, TOKEN_BUFFER_SIZE);
+  read_ctx_t rc = {.ic = &intrp, .tb = &tb, .read = read_single_line};
+  repl(&rc);
 
   return 0;
 }

@@ -3,57 +3,9 @@
 #include "parser.h"
 #include <stdio.h>
 
-void print_token(prim_t token) {
-  switch (token.t) {
-  case t_LPAREN:
-    printf("LPAREN ");
-    break;
-  case t_RPAREN:
-    printf("RPAREN ");
-    break;
-  case t_QUOTE:
-    printf("QUOTE ");
-    break;
-  case t_QUASIQUOTE:
-    printf("QUASIQUOTE ");
-    break;
-  case t_UNQUOTE:
-    printf("UNQUOTE ");
-    break;
-  case t_DOUBLEQUOTE:
-    printf("DOUBLEQUOTE ");
-    break;
-  case t_NUMBER:
-    printf("NUMBER:%lf ", token.num);
-    break;
-  case t_ATOM:
-    printf("ATOM:%s ", token.str);
-    break;
-  case t_UNKNOWN:
-    printf("UNKNOWN ");
-    break;
-  case t_END_OF_FILE:
-    printf("EOF ");
-    break;
-  case t_COMMENT:
-    printf("COMMENT ");
-    break;
-  case t_NEWLINE:
-    printf("NEWLINE ");
-    break;
-  case t_TRUE:
-    printf("TRUE ");
-    break;
-  case t_FALSE:
-    printf("FALSE ");
-    break;
-  case t_DOT:
-    printf("DOT ");
-    break;
-  default:
-    break;
-  }
-}
+#include "../util/enum_map.h"
+
+void print_token(prim_t token) { printf("%s ", type_t_to_string[token.t]); }
 
 void print(expr_t x, interpreter_t *ctx) {
   if (ctx->noprint) {

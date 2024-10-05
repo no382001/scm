@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum type_t {
+typedef enum {
   t_END_OF_FILE = 0,
   t_UNKNOWN,
   t_DOUBLEQUOTE,
@@ -22,10 +22,10 @@ enum type_t {
   t_FALSE,
   t_DOT, // this should work in atom still
   t_ERROR,
-};
+} type_t;
 
 typedef struct {
-  enum type_t t;
+  type_t t;
   char *str;
   double num;
 } prim_t;
@@ -61,6 +61,15 @@ typedef struct {
 
 #include "interpreter.h"
 
+typedef struct read_ctx_t read_ctx_t;
+struct read_ctx_t {
+  int i;
+  interpreter_t *ic;
+  token_buffer_t *tb;
+  bool (*read)(read_ctx_t *);
+  int open_parens;
+};
+
 void reseti(token_buffer_t *tb);
 prim_t look(token_buffer_t *tb);
 prim_t get(token_buffer_t *tb);
@@ -68,3 +77,6 @@ prim_t next(token_buffer_t *tb);
 prim_t prev(token_buffer_t *tb);
 expr_t parse(interpreter_t *ctx, token_buffer_t *tb);
 expr_t list(interpreter_t *ctx, token_buffer_t *tb);
+
+bool read_single_line(read_ctx_t *rctx);
+bool read_multi_line(read_ctx_t *rctx);
