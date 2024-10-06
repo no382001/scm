@@ -94,7 +94,11 @@ expr_t list(interpreter_t *ctx, token_buffer_t *tb) {
       return t;
     }
 
-    *p = cons(parse(), nil);
-    p = &cell[sp--]; // move to the next cell in the list
+   expr_t res = parse();
+    
+    if (!equ(res, nop)) {
+      *p = cons(res, nil);
+      p = &cell[sp--]; // move to the next cell in the list
+    }
   }
 }

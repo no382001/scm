@@ -37,7 +37,7 @@ void init_interpreter(interpreter_t *ctx) {
   }
 }
 
-bool read_single_line(read_ctx_t *rctx) {
+bool read_line(read_ctx_t *rctx) {
 
   if (looking_at() == EOF) {
     if (curr_ctx->file != stdin) {
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
   advance();
 
   token_buffer_t tb = {0};
-  read_ctx_t rc = {.ic = &intrp, .tb = &tb, .read = read_single_line};
+  read_ctx_t rc = {.ic = &intrp, .tb = &tb, .read = read_line};
   repl(&rc);
 
   return 0;

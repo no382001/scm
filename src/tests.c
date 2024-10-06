@@ -11,7 +11,6 @@ extern jmp_buf jb;
 
 int doprint = 0;
 interpreter_t *ctx;
-
 void init_interpreter(interpreter_t *c);
 
 #define g_err_state ic_errstate
@@ -171,17 +170,18 @@ void lisp_expression_to_string(expr_t x, char *buffer, int buffer_size) {
   }
 }
 
+expr_t repl(read_ctx_t *rc);
 expr_t parse_this(const char *str);
-expr_t repl(interpreter_t *ctx, prim_t *token_buffer, int size);
 expr_t eval_this(const char *str) {
   token_buffer_t tb = {0};
   switch_ctx_inject_string(str);
   advance();
+  read_ctx_t rc = {.ic = ctx, .tb = &tb, .read = read_line};
   int jmpres = setjmp(ic_jb);
   if (jmpres == 1) {
     return err;
   } else {
-    return repl(ctx, tb.buffer, TOKEN_BUFFER_SIZE);
+    return repl(&rc);
   } // this does not handle case 2 where rcbs should be invoked
 }
 
@@ -475,6 +475,15 @@ void test_UnquoteWithoutQuasiquote(void) {
   TEST_ASSERT_EQUAL(g_err_state.type, UNQUOTE_OUTSIDE_QUASIQUOTE);
 }
 
+void test_Multiline(void) {
+    expr_t result = eval_this(
+    "(define n 1)\n"
+    "`(+ 1 ,n)\n"); //idkf
+  ASSERT_VAR(result, "(+ 1 1)");
+  TEST_ASSERT_EQUAL(g_err_state.type, NONE);
+}
+
+
 int main(void) {
   UNITY_BEGIN();
 
@@ -527,6 +536,8 @@ int main(void) {
   RUN_TEST(test_QuasiquoteWithUnquote);
   RUN_TEST(test_NestedQuasiquoteWithUnquote);
   RUN_TEST(test_UnquoteWithoutQuasiquote);
+
+  RUN_TEST(test_Multiline);
 
   return UNITY_END();
 }

@@ -191,56 +191,53 @@ expr_t f_macro(expr_t t, expr_t *e, interpreter_t *ctx) {
 extern parse_ctx *curr_ctx;
 expr_t repl(read_ctx_t *rc);
 expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
+    expr_t x = eval(car(t), *e);
+    if (equ(x, err)) {
+        g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
+        g_err_state.box = t;
+        return err;
+    }
 
-  expr_t x = eval(car(t), *e);
-  if (equ(x, err)) {
-    g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
-    g_err_state.box = t;
-    return err;
-  }
+    const char *filename = ic_atomheap + ord(x);
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("failed to open file: errno = %d\n", errno);
+        printf("error message: %s\n", strerror(errno));
+        g_err_state.type = LOAD_CANNOT_OPEN_FILE;
+        g_err_state.box = x;
+        return err;
+    }
 
-  const char *filename = ic_atomheap + ord(x);
-  FILE *file = fopen(filename, "r");
-  if (!file) {
-    printf("failed to open file: errno = %d\n", errno);
-    printf("error message: %s\n", strerror(errno));
-    g_err_state.type = LOAD_CANNOT_OPEN_FILE;
-    g_err_state.box = x;
-    return err;
-  }
+    parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
+    if (!old_ctx) {
+        fclose(file);
+        return err;
+    }
 
-  parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
-  // printf("--> loading %s...\n",filename);
-  switch_ctx_to_file(file);
+    switch_ctx_to_file(file);
 
-  prim_t buff[TOKEN_BUFFER_SIZE] = {0};
+    token_buffer_t tb = {0};
+    read_ctx_t rc = { .ic = ctx, .tb = &tb, .read = read_line };
 
-  ctx->nosetjmp = true;
+    jmp_buf saved_jb;
+    memcpy(saved_jb, jb, sizeof(jmp_buf));
 
-  jmp_buf savedjb;
-  // save the ic_jb
-  memcpy(savedjb, jb, sizeof(jmp_buf));
+    jmp_buf load_jb;
+    int jmpres = setjmp(load_jb);
+    memcpy(jb, load_jb, sizeof(jmp_buf));
 
-  jmp_buf loadjb;
-  int jmpres = setjmp(loadjb);
-  // swap them
-  memcpy(jb, loadjb, sizeof(jmp_buf));
+    expr_t result = nil;
 
-  interpreter_t *const *ctx2 = &ctx;
-  read_ctx_t *rc = container_of(ctx2, read_ctx_t, ic);
+    if (jmpres == 0) {
+        result = repl(&rc);
+    }
 
-  expr_t result = nil;
-  if (jmpres == 0) {
-    result = repl(rc);
-  }
+    memcpy(jb, saved_jb, sizeof(jmp_buf));
+    fclose(curr_ctx->file);
+    curr_ctx = old_ctx;
+    ctx->nosetjmp = false;
 
-  // close file and restore previous contexts
-  ctx->nosetjmp = false;
-  fclose(curr_ctx->file);
-  curr_ctx = old_ctx;
-  memcpy(jb, savedjb, sizeof(jmp_buf));
-
-  return result; // this should probably be nop? or just this?
+    return result;
 }
 
 expr_t f_display(expr_t t, expr_t *e, interpreter_t *ctx) {

@@ -78,5 +78,5 @@ prim_t prev(token_buffer_t *tb);
 expr_t parse(interpreter_t *ctx, token_buffer_t *tb);
 expr_t list(interpreter_t *ctx, token_buffer_t *tb);
 
-bool read_single_line(read_ctx_t *rctx);
+bool read_line(read_ctx_t *rctx);
 bool read_multi_line(read_ctx_t *rctx);
