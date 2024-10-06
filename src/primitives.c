@@ -190,6 +190,7 @@ expr_t f_macro(expr_t t, expr_t *e, interpreter_t *ctx) {
 #include "parser.h"
 extern parse_ctx *curr_ctx;
 expr_t repl(read_ctx_t *rc);
+int f_load_layer = -1;
 expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
     expr_t x = eval(car(t), *e);
     if (equ(x, err)) {
@@ -217,7 +218,7 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
     switch_ctx_to_file(file);
 
     token_buffer_t tb = {0};
-    read_ctx_t rc = { .ic = ctx, .tb = &tb, .read = read_line };
+    read_ctx_t rc = { .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++ };
 
     jmp_buf saved_jb;
     memcpy(saved_jb, jb, sizeof(jmp_buf));
@@ -236,6 +237,7 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
     fclose(curr_ctx->file);
     curr_ctx = old_ctx;
     ctx->nosetjmp = false;
+    f_load_layer--;
 
     return result;
 }

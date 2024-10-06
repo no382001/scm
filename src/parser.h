@@ -68,6 +68,7 @@ struct read_ctx_t {
   token_buffer_t *tb;
   bool (*read)(read_ctx_t *);
   int open_parens;
+  int f_load_layer;
 };
 
 void reseti(token_buffer_t *tb);
