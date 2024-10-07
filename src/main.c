@@ -62,7 +62,7 @@ bool read_line(read_ctx_t *rctx) {
     }
 
     if (!rctx->ic->noprint) {
-      print_token(rctx->tb->buffer[rctx->i - 1]);
+      //print_token(rctx->tb->buffer[rctx->i - 1]);
       fflush(stdout);
     }
   }
@@ -71,7 +71,7 @@ bool read_line(read_ctx_t *rctx) {
     prim_t r = {.t = t_NEWLINE};
     rctx->tb->buffer[rctx->i++] = r;
     if (!rctx->ic->noprint) {
-      print_token(rctx->tb->buffer[rctx->i - 1]);
+      //print_token(rctx->tb->buffer[rctx->i - 1]);
     }
   }
 
@@ -106,14 +106,12 @@ expr_t repl(read_ctx_t *rc) {
     } else if (jmpres == 2) {
       result = eval(ic_rcso.x, ic_rcso.e, rc->ic);
     } else {
-      if (!rc->ic->noprint) {
-        printf("\n%u>", ic_sp - ic_hp / 8);
-      }
       result = eval(parse(rc->ic, rc->tb), ic_env, rc->ic);
     }
 
-    if (!equ(ic_c_err, result) && !equ(ic_c_err, ic_c_nop)) {
+    if (!equ(ic_c_err, result) && !equ(ic_c_nop, result)) {
       if (!rc->ic->noprint) {
+        printf("%u>", ic_sp - ic_hp / 8);
         print(result, rc->ic);
         putchar('\n');
       }
@@ -139,9 +137,9 @@ extern int token_idx;
 
 int main(int argc, char **argv) {
   default_ctx.file = stdin;
-  if (argc > 2 && strcmp(argv[1], "-e") == 0) {
+  if (argc > 2 && strcmp(argv[1], "-e") == 0) { // will exit at once
     switch_ctx_inject_string(argv[2]);
-  } else if (argc > 2 && strcmp(argv[1], "-f") == 0) {
+  } else if (argc > 2 && strcmp(argv[1], "-f") == 0) { // cant exit context for some reason
     FILE *file = fopen(argv[2], "r");
     if (file == NULL) {
       perror("error opening file");

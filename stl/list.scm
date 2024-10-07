@@ -113,12 +113,3 @@
 
 (defun butlast (lst)
   (reverse (nthcdr (reverse lst) 1)))
-
-(define __value_delim '(__value_delim))
-
-(defun (make-values . args)
-  (cond ((null? args) '())
-        ((null? (cdr args)) (list (car args)))
-        (else (cons (car args) (cons __value_delim (my-values (cdr args)))))))
-
-; (make-values '1 '(2 3) '4)

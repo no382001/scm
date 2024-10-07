@@ -237,21 +237,11 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
     token_buffer_t tb = {0};
     read_ctx_t rc = { .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++ };
 
-    jmp_buf saved_jb;
-    memcpy(saved_jb, jb, sizeof(jmp_buf));
-
-    jmp_buf load_jb;
-    int jmpres = setjmp(load_jb);
-    memcpy(jb, load_jb, sizeof(jmp_buf));
-
     expr_t result = nil;
 
-    if (jmpres == 0) {
-        result = repl(&rc);
-    }
+    result = repl(&rc);
 
-    memcpy(jb, saved_jb, sizeof(jmp_buf));
-    fclose(curr_ctx->file);
+    //fclose(curr_ctx->file);
     curr_ctx = old_ctx;
     ctx->nosetjmp = false;
     f_load_layer--;

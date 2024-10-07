@@ -26,7 +26,8 @@
                 (setq __files-included (cons filename __files-included))
                 (load filename)
                 (display 'loaded-)
-                (display filename)))))
+                (display filename)
+                (newline)))))
     (include-impl f)))
 
 (include 'stl/common.scm)

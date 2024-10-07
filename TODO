@@ -55,3 +55,7 @@ OPTIMIOZATIONN:
 - f_load and f_read dont really work now
 
 - loadfile cant really handle things on multiple lines, ergo repl cant 
+
+- get rid of t_DOT
+- fix `values`
+- implement variadic lambda
