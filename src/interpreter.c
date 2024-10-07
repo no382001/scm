@@ -452,4 +452,5 @@ prim_procs_t prim[] = {{"eval", f_eval, 1},
                        {"__prims", f_list_primitives, 0},
                        {"unquote", f_unquote, 0},
                        {"quasiquote", f_quasiquote, 0},
+                       {"__get-env", f_env, 0},
                        {0}};

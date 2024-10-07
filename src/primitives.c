@@ -26,8 +26,25 @@
 #define rcso_ctx ic_rcso
 
 expr_t f_eval(expr_t t, expr_t *e, interpreter_t *ctx) {
-  return car(evlis(t, *e));
+  int count = 0;
+  expr_t temp = t;
+  while (T(temp) == CONS) {
+    count++;
+    temp = cdr(temp);
+  }
+  if (count == 1) {
+    return car(evlis(t, *e));
+  } else if (count == 2) {
+    expr_t x = eval(car(t), *e);
+    expr_t curr_env = eval(car(cdr(t)), *e);
+    return car(evlis(x, curr_env));
+  } else {
+    ic_errstate.type = EVAL_WRONG_N_OF_ARGS;
+    return err;
+  }
 }
+
+expr_t f_env(expr_t t, expr_t *e, interpreter_t *ctx) { return *e; }
 
 expr_t f_quote(expr_t t, expr_t *_, interpreter_t *ctx) { return car(t); }
 

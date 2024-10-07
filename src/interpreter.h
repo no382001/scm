@@ -45,7 +45,8 @@ typedef enum {
   SETCDR_ARG_NOT_CONS,
   VECTOR_FN_NOT_A_VECTOR,
   VECTOR_FN_INDEX_OOB,
-  UNQUOTE_OUTSIDE_QUASIQUOTE
+  UNQUOTE_OUTSIDE_QUASIQUOTE,
+  EVAL_WRONG_N_OF_ARGS
 } error_code_t;
 
 typedef struct {
@@ -233,3 +234,4 @@ expr_t f_vector_set(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_vector_length(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_unquote(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx);
+expr_t f_env(expr_t t, expr_t *e, interpreter_t *ctx);
