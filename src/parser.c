@@ -105,6 +105,9 @@ prim_t scan() {
   }
 
   switch (looking_at()) {
+  case 0:
+    res.t = TAG_END_OF_FILE;
+    return res;
   case '(':
     advance();
     res.t = TAG_LPAREN;
@@ -138,12 +141,32 @@ prim_t scan() {
     }
     res.t = TAG_COMMENT;
     return res;
+  case '"':
+    int i = 0;
+    char buff[256] = {0};
+    char c = advance();
+    do {
+      buff[i++] = c;
+      c = advance();
+    } while (c != '"' && c != EOF);
+    buff[i] = '\0';
+    advance();
+
+    res.t = TAG_STRING;
+    res.str = malloc(strlen(buff) + 1);
+    strcpy(res.str, buff);
+    return res;
+    break;
   case '#':
     advance();
     if (looking_at() == '(') {
       advance();
       paren_count++;
       res.t = TAG_VECTOR;
+    } else if (looking_at() == 't') {
+      res.t = TAG_TRUE;
+    } else if (looking_at() == 'f') {
+      res.t = TAG_FALSE;
     } else {
       res.t = TAG_ERROR;
     }
@@ -151,7 +174,6 @@ prim_t scan() {
   default:
     // number
     if (isdigit(looking_at()) || (looking_at() == '-' && isdigit(peek()))) {
-
       char buffer[64];
       int idx = 0;
       if (looking_at() == '-') {
@@ -179,16 +201,8 @@ prim_t scan() {
     }
     buffer[idx] = '\0';
 
-    if (strcmp(buffer, "#t") == 0) {
-      res.t = TAG_TRUE;
-    } else if (strcmp(buffer, "#f") == 0) {
-      res.t = TAG_FALSE;
-    } else if (strcmp(buffer, ".") == 0) {
+    if (strcmp(buffer, ".") == 0) {
       res.t = TAG_DOT;
-    } else if (buffer[0] == '"' && buffer[idx - 1] == '"'){
-      res.t = TAG_STRING;
-      res.str = malloc(strlen(buffer) + 1);
-      strcpy(res.str, buffer);
     } else {
       res.t = TAG_ATOM;
       res.str = malloc(strlen(buffer) + 1);

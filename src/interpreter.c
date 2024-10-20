@@ -41,7 +41,7 @@ expr_t cons(expr_t x, expr_t y, low_level_ctx_t *ctx) {
   cell[--sp] = x; /* push car of x  */
   cell[--sp] = y; /* push cdr of y */
   if (hp > sp << 3) {
-    g_err_state.type = STACK_HEAP_COLLISION;
+    g_err_state.type = CONS_STACK_HEAP_COLLISION;
     longjmp(jb, 1);
   }
   return box(CONS, sp);
@@ -96,7 +96,7 @@ expr_t atom(const char *s, low_level_ctx_t *ctx) {
   if (i == hp && (hp += strlen(strcpy(llc_atomheap + i, s)) + 1) >
                      sp << 3) { /* if not found, allocate and add a new atom
                                    name, abort when oom */
-    g_err_state.type = STACK_HEAP_COLLISION;
+    g_err_state.type = ATOM_STACK_HEAP_COLLISION;
     longjmp(jb, 1);
   }
   return box(ATOM, i);

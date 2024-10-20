@@ -5,7 +5,8 @@
 #include "print.h"
 
 const tag_t ATOM = 0x7ff7, PRIM = 0x7ff8, CONS = 0x7ff9, CLOS = 0x7ffa,
-            NIL = 0x7ffb, MACR = 0x7ffc, NOP = 0x7ffd, VECTOR = 0x7ffe, STRING = 0x7fff;
+            NIL = 0x7ffb, MACR = 0x7ffc, NOP = 0x7ffd, VECTOR = 0x7ffe,
+            STRING = 0x7fff;
 
 prim_t token_buffer[TOKEN_BUFFER_SIZE] = {0};
 
@@ -63,7 +64,7 @@ bool read_line(read_ctx_t *rctx) {
     }
 
     if (!rctx->ic->noprint) {
-      //print_token(rctx->tb->buffer[rctx->i - 1]);
+      print_token(rctx->tb->buffer[rctx->i - 1]);
       fflush(stdout);
     }
   }
@@ -72,7 +73,7 @@ bool read_line(read_ctx_t *rctx) {
     prim_t r = {.t = TAG_NEWLINE};
     rctx->tb->buffer[rctx->i++] = r;
     if (!rctx->ic->noprint) {
-      //print_token(rctx->tb->buffer[rctx->i - 1]);
+      print_token(rctx->tb->buffer[rctx->i - 1]);
     }
   }
 

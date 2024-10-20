@@ -258,12 +258,12 @@ expr_t f_display(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   expr_t r = eval(car(t), *e);
   if (equ(r, err)) {
-    g_err_state.type = DISPLAY_EVAL_ERROR; // maybe its a string? and print it?
+    g_err_state.type = DISPLAY_EVAL_ERROR;
     g_err_state.box = r;
     return err;
   }
   print(r);
-  return nop; // might fuck up the include macro
+  return nop;
 }
 
 expr_t f_newline(expr_t t, expr_t *e, interpreter_t *ctx) {

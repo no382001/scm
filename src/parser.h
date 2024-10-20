@@ -6,7 +6,6 @@
 #include <string.h>
 
 typedef enum {
-  TAG_ERROR = 0,
   TAG_END_OF_FILE,
   TAG_UNKNOWN,
   TAG_RPAREN,
@@ -20,9 +19,10 @@ typedef enum {
   TAG_NEWLINE,
   TAG_TRUE,
   TAG_FALSE,
-  TAG_DOT, // this should work in atom still
+  TAG_DOT,
   TAG_VECTOR,
   TAG_STRING,
+  TAG_ERROR
 } type_t;
 
 typedef struct {
