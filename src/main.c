@@ -64,8 +64,8 @@ bool read_line(read_ctx_t *rctx) {
     }
 
     if (!rctx->ic->noprint) {
-      print_token(rctx->tb->buffer[rctx->i - 1]);
-      fflush(stdout);
+      // print_token(rctx->tb->buffer[rctx->i - 1]);
+      // fflush(stdout);
     }
   }
 
@@ -73,7 +73,7 @@ bool read_line(read_ctx_t *rctx) {
     prim_t r = {.t = TAG_NEWLINE};
     rctx->tb->buffer[rctx->i++] = r;
     if (!rctx->ic->noprint) {
-      print_token(rctx->tb->buffer[rctx->i - 1]);
+      // print_token(rctx->tb->buffer[rctx->i - 1]);
     }
   }
 

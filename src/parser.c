@@ -164,8 +164,10 @@ prim_t scan() {
       paren_count++;
       res.t = TAG_VECTOR;
     } else if (looking_at() == 't') {
+      advance();
       res.t = TAG_TRUE;
     } else if (looking_at() == 'f') {
+      advance();
       res.t = TAG_FALSE;
     } else {
       res.t = TAG_ERROR;
