@@ -9,7 +9,6 @@ typedef enum {
   TAG_ERROR = 0,
   TAG_END_OF_FILE,
   TAG_UNKNOWN,
-  TAG_DOUBLEQUOTE,
   TAG_RPAREN,
   TAG_LPAREN,
   TAG_QUOTE,
@@ -23,6 +22,7 @@ typedef enum {
   TAG_FALSE,
   TAG_DOT, // this should work in atom still
   TAG_VECTOR,
+  TAG_STRING,
 } type_t;
 
 typedef struct {

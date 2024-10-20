@@ -13,7 +13,7 @@ void print(expr_t x, interpreter_t *ctx) {
   }
   if (T(x) == NIL)
     printf("()");
-  else if (T(x) == ATOM)
+  else if (T(x) == ATOM || T(x) == STRING)
     printf("%s", ic_atomheap + ord(x));
   else if (T(x) == PRIM)
     printf("<%s>", ic_prim[ord(x)].s);

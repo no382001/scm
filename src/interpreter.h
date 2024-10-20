@@ -15,7 +15,7 @@
 typedef unsigned tag_t;
 typedef double expr_t;
 
-extern const tag_t ATOM, PRIM, CONS, CLOS, NIL, MACR, NOP, VECTOR;
+extern const tag_t ATOM, PRIM, CONS, CLOS, NIL, MACR, NOP, VECTOR, STRING;
 
 typedef enum {
   NONE = 0,

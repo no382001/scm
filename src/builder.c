@@ -16,15 +16,26 @@ prim_t next(token_buffer_t *tb) { return tb->buffer[++tb->idx]; }
 // backwards and get
 prim_t prev(token_buffer_t *tb) { return tb->buffer[--tb->idx]; }
 
+tag_t debox(expr_t x) {
+    return (tag_t)((*(unsigned long long *)&x) & 0xFFFFFFFFFFFF);
+}
+
+#define STRING_TYPE_MAX_LEN 128
+expr_t static string(const char *s, low_level_ctx_t *ctx) {
+  expr_t atom_expr = atom(s,ctx);
+  tag_t i = debox(atom_expr);
+
+  return box(STRING, i);
+}
+
 #define cons(exp1, exp2) cons(exp1, exp2, ic2llcref)
-#define atom(s) atom(s, ic2llcref)
 #define sp ic_sp
 #define cell ic_cell
 #define nil ic_c_nil
 #define tru ic_c_tru
 #define err ic_c_err
 #define nop ic_c_nop
-
+#define atom(s) atom(s, ic2llcref)
 #define get() get(tb)
 #define look() look(tb)
 #define list() list(ctx, tb)
@@ -50,6 +61,8 @@ expr_t parse(interpreter_t *ctx, token_buffer_t *tb) {
     return list();
   case TAG_VECTOR:
     return vector_conv(ctx, tb);
+  case TAG_STRING:
+    return string(p.str,ic2llcref);
   case TAG_QUOTE:
     get();
     return cons(atom("quote"), cons(parse(), nil));

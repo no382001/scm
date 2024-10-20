@@ -127,11 +127,7 @@ prim_t scan() {
     advance();
     res.t = TAG_UNQUOTE;
     return res;
-  case '"':
-    advance();
-    res.t = TAG_DOUBLEQUOTE;
-    return res;
-  case '\n': // never hit, probably
+  case '\n':
     advance();
     res.t = TAG_NEWLINE;
     return res;
@@ -189,12 +185,16 @@ prim_t scan() {
       res.t = TAG_FALSE;
     } else if (strcmp(buffer, ".") == 0) {
       res.t = TAG_DOT;
+    } else if (buffer[0] == '"' && buffer[idx - 1] == '"'){
+      res.t = TAG_STRING;
+      res.str = malloc(strlen(buffer) + 1);
+      strcpy(res.str, buffer);
     } else {
       res.t = TAG_ATOM;
       res.str = malloc(strlen(buffer) + 1);
       strcpy(res.str, buffer);
     }
 
-    return res; // def is TAG_ERROR
+    return res; // default is TAG_ERROR
   }
 }
