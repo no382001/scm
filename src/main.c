@@ -41,7 +41,7 @@ bool read_line(read_ctx_t *rctx) {
 
   if (looking_at() == EOF) {
     if (curr_ctx->file != stdin) {
-      if (rctx->f_load_layer != -1){
+      if (rctx->f_load_layer != -1) {
         return true; // give back control, we are too deep to switch to stdin
       }
       switch_ctx_to_stdin(curr_ctx);
@@ -55,23 +55,24 @@ bool read_line(read_ctx_t *rctx) {
          rctx->i < TOKEN_BUFFER_SIZE) {
     rctx->tb->buffer[rctx->i++] = scan();
 
-    if (rctx->tb->buffer[rctx->i - 1].t == t_LPAREN) {
+    type_t prev = rctx->tb->buffer[rctx->i - 1].t;
+    if (prev == TAG_LPAREN || prev == TAG_VECTOR) {
       rctx->open_parens++;
-    } else if (rctx->tb->buffer[rctx->i - 1].t == t_RPAREN) {
+    } else if (prev == TAG_RPAREN) {
       rctx->open_parens--;
     }
 
     if (!rctx->ic->noprint) {
-      //print_token(rctx->tb->buffer[rctx->i - 1]);
+      // print_token(rctx->tb->buffer[rctx->i - 1]);
       fflush(stdout);
     }
   }
 
   if (looking_at() == '\n' && rctx->i < TOKEN_BUFFER_SIZE) {
-    prim_t r = {.t = t_NEWLINE};
+    prim_t r = {.t = TAG_NEWLINE};
     rctx->tb->buffer[rctx->i++] = r;
     if (!rctx->ic->noprint) {
-      //print_token(rctx->tb->buffer[rctx->i - 1]);
+      // print_token(rctx->tb->buffer[rctx->i - 1]);
     }
   }
 
@@ -139,7 +140,8 @@ int main(int argc, char **argv) {
   default_ctx.file = stdin;
   if (argc > 2 && strcmp(argv[1], "-e") == 0) { // will exit at once
     switch_ctx_inject_string(argv[2]);
-  } else if (argc > 2 && strcmp(argv[1], "-f") == 0) { // cant exit context for some reason
+  } else if (argc > 2 &&
+             strcmp(argv[1], "-f") == 0) { // cant exit context for some reason
     FILE *file = fopen(argv[2], "r");
     if (file == NULL) {
       perror("error opening file");

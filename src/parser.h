@@ -6,22 +6,23 @@
 #include <string.h>
 
 typedef enum {
-  t_END_OF_FILE = 0,
-  t_UNKNOWN,
-  t_DOUBLEQUOTE,
-  t_RPAREN,
-  t_LPAREN,
-  t_QUOTE,
-  t_QUASIQUOTE,
-  t_UNQUOTE,
-  t_NUMBER,
-  t_ATOM,
-  t_COMMENT,
-  t_NEWLINE,
-  t_TRUE,
-  t_FALSE,
-  t_DOT, // this should work in atom still
-  t_ERROR,
+  TAG_ERROR = 0,
+  TAG_END_OF_FILE,
+  TAG_UNKNOWN,
+  TAG_DOUBLEQUOTE,
+  TAG_RPAREN,
+  TAG_LPAREN,
+  TAG_QUOTE,
+  TAG_QUASIQUOTE,
+  TAG_UNQUOTE,
+  TAG_NUMBER,
+  TAG_ATOM,
+  TAG_COMMENT,
+  TAG_NEWLINE,
+  TAG_TRUE,
+  TAG_FALSE,
+  TAG_DOT, // this should work in atom still
+  TAG_VECTOR,
 } type_t;
 
 typedef struct {

@@ -29,37 +29,44 @@ prim_t prev(token_buffer_t *tb) { return tb->buffer[--tb->idx]; }
 #define look() look(tb)
 #define list() list(ctx, tb)
 
+expr_t static vector_conv(interpreter_t *ctx, token_buffer_t *tb) {
+  expr_t inner = list();
+  return cons(atom("vector"), inner);
+}
+
 expr_t parse(interpreter_t *ctx, token_buffer_t *tb) {
 #define parse() parse(ctx, tb)
 
   prim_t p = look();
 
   switch (p.t) {
-  case t_TRUE:
+  case TAG_TRUE:
     get();
     return tru;
-  case t_FALSE:
+  case TAG_FALSE:
     get();
     return nil;
-  case t_LPAREN:
+  case TAG_LPAREN:
     return list();
-  case t_QUOTE:
+  case TAG_VECTOR:
+    return vector_conv(ctx, tb);
+  case TAG_QUOTE:
     get();
     return cons(atom("quote"), cons(parse(), nil));
-  case t_QUASIQUOTE:
+  case TAG_QUASIQUOTE:
     get();
     return cons(atom("quasiquote"), cons(parse(), nil));
-  case t_UNQUOTE:
+  case TAG_UNQUOTE:
     get();
     return cons(atom("unquote"), cons(parse(), nil));
-  case t_ATOM:
+  case TAG_ATOM:
     get();
     return atom(p.str);
-  case t_NUMBER:
+  case TAG_NUMBER:
     get();
     return num(p.num);
-  case t_NEWLINE:
-  case t_COMMENT:
+  case TAG_NEWLINE:
+  case TAG_COMMENT:
     get();
     return nop;
   default:
@@ -75,27 +82,27 @@ expr_t list(interpreter_t *ctx, token_buffer_t *tb) {
   while (1) {
     prim_t token = look();
 
-    if (token.t == t_RPAREN) {
+    if (token.t == TAG_RPAREN) {
       get(); // eat the ')'
       return t;
     }
 
-    if (token.t == t_END_OF_FILE) {
+    if (token.t == TAG_END_OF_FILE) {
       return err;
     }
 
-    if (token.t == t_DOT) {
+    if (token.t == TAG_DOT) {
       get();        // eat dot
       *p = parse(); // parse the expression after the dot
-      if (look().t != t_RPAREN) {
+      if (look().t != TAG_RPAREN) {
         return err;
       }
       get(); // eat the ')'
       return t;
     }
 
-   expr_t res = parse();
-    
+    expr_t res = parse();
+
     if (!equ(res, nop)) {
       *p = cons(res, nil);
       p = &cell[sp--]; // move to the next cell in the list

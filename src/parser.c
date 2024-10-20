@@ -100,47 +100,57 @@ prim_t scan() {
   }
 
   if (looking_at() == EOF) {
-    res.t = t_END_OF_FILE;
+    res.t = TAG_END_OF_FILE;
     return res;
   }
 
   switch (looking_at()) {
   case '(':
     advance();
-    res.t = t_LPAREN;
+    res.t = TAG_LPAREN;
     paren_count++;
     return res;
   case ')':
     advance();
     paren_count--;
-    res.t = t_RPAREN;
+    res.t = TAG_RPAREN;
     return res;
   case '\'':
     advance();
-    res.t = t_QUOTE;
+    res.t = TAG_QUOTE;
     return res;
   case '`':
     advance();
-    res.t = t_QUASIQUOTE;
+    res.t = TAG_QUASIQUOTE;
     return res;
   case ',':
     advance();
-    res.t = t_UNQUOTE;
+    res.t = TAG_UNQUOTE;
     return res;
   case '"':
     advance();
-    res.t = t_DOUBLEQUOTE;
+    res.t = TAG_DOUBLEQUOTE;
     return res;
   case '\n': // never hit, probably
     advance();
-    res.t = t_NEWLINE;
+    res.t = TAG_NEWLINE;
     return res;
   case ';':
     advance();
     while (looking_at() != '\n' && looking_at() != EOF) {
       advance();
     }
-    res.t = t_COMMENT;
+    res.t = TAG_COMMENT;
+    return res;
+  case '#':
+    advance();
+    if (looking_at() == '(') {
+      advance();
+      paren_count++;
+      res.t = TAG_VECTOR;
+    } else {
+      res.t = TAG_ERROR;
+    }
     return res;
   default:
     // number
@@ -159,7 +169,7 @@ prim_t scan() {
       }
       buffer[idx] = '\0';
 
-      res.t = t_NUMBER;
+      res.t = TAG_NUMBER;
       res.num = strtod(buffer, NULL);
       return res;
     }
@@ -174,17 +184,17 @@ prim_t scan() {
     buffer[idx] = '\0';
 
     if (strcmp(buffer, "#t") == 0) {
-      res.t = t_TRUE;
+      res.t = TAG_TRUE;
     } else if (strcmp(buffer, "#f") == 0) {
-      res.t = t_FALSE;
+      res.t = TAG_FALSE;
     } else if (strcmp(buffer, ".") == 0) {
-      res.t = t_DOT;
+      res.t = TAG_DOT;
     } else {
-      res.t = t_ATOM;
+      res.t = TAG_ATOM;
       res.str = malloc(strlen(buffer) + 1);
       strcpy(res.str, buffer);
     }
 
-    return res;
+    return res; // def is TAG_ERROR
   }
 }

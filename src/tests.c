@@ -476,13 +476,11 @@ void test_UnquoteWithoutQuasiquote(void) {
 }
 
 void test_Multiline(void) {
-    expr_t result = eval_this(
-    "(define n 1)\n"
-    "`(+ 1 ,n)\n"); //idkf
+  expr_t result = eval_this("(define n 1)\n"
+                            "`(+ 1 ,n)\n"); // idkf
   ASSERT_VAR(result, "(+ 1 1)");
   TEST_ASSERT_EQUAL(g_err_state.type, NONE);
 }
-
 
 int main(void) {
   UNITY_BEGIN();

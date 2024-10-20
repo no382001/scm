@@ -209,44 +209,45 @@ extern parse_ctx *curr_ctx;
 expr_t repl(read_ctx_t *rc);
 int f_load_layer = -1;
 expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
-    expr_t x = eval(car(t), *e);
-    if (equ(x, err)) {
-        g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
-        g_err_state.box = t;
-        return err;
-    }
+  expr_t x = eval(car(t), *e);
+  if (equ(x, err)) {
+    g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
+    g_err_state.box = t;
+    return err;
+  }
 
-    const char *filename = ic_atomheap + ord(x);
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        printf("failed to open file: errno = %d\n", errno);
-        printf("error message: %s\n", strerror(errno));
-        g_err_state.type = LOAD_CANNOT_OPEN_FILE;
-        g_err_state.box = x;
-        return err;
-    }
+  const char *filename = ic_atomheap + ord(x);
+  FILE *file = fopen(filename, "r");
+  if (!file) {
+    printf("failed to open file: errno = %d\n", errno);
+    printf("error message: %s\n", strerror(errno));
+    g_err_state.type = LOAD_CANNOT_OPEN_FILE;
+    g_err_state.box = x;
+    return err;
+  }
 
-    parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
-    if (!old_ctx) {
-        fclose(file);
-        return err;
-    }
+  parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
+  if (!old_ctx) {
+    fclose(file);
+    return err;
+  }
 
-    switch_ctx_to_file(file);
+  switch_ctx_to_file(file);
 
-    token_buffer_t tb = {0};
-    read_ctx_t rc = { .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++ };
+  token_buffer_t tb = {0};
+  read_ctx_t rc = {
+      .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++};
 
-    expr_t result = nil;
+  expr_t result = nil;
 
-    result = repl(&rc);
+  result = repl(&rc);
 
-    //fclose(curr_ctx->file);
-    curr_ctx = old_ctx;
-    ctx->nosetjmp = false;
-    f_load_layer--;
+  // fclose(curr_ctx->file);
+  curr_ctx = old_ctx;
+  ctx->nosetjmp = false;
+  f_load_layer--;
 
-    return result;
+  return result;
 }
 
 expr_t f_display(expr_t t, expr_t *e, interpreter_t *ctx) {
