@@ -1,7 +1,11 @@
 #include "parser.h"
 
-parse_ctx default_ctx = {
-    .file = NULL, .buffer = {0}, .buf_pos = 0, .buf_end = 0, .curr = ' '};
+parse_ctx default_ctx = {.file = NULL,
+                         .buffer = {0},
+                         .buf_pos = 0,
+                         .buf_end = 0,
+                         .curr = ' ',
+                         .injected = false};
 
 parse_ctx *curr_ctx = &default_ctx; // not cool
 
@@ -45,6 +49,7 @@ void switch_ctx_inject_string(const char *input_str) {
   curr_ctx->buf_end = strlen(curr_ctx->buffer);
   curr_ctx->curr = curr_ctx->buffer[0];
   curr_ctx->file = NULL;
+  curr_ctx->injected = true;
 }
 
 char peek() {

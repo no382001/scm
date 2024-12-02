@@ -217,13 +217,34 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
   }
 
   const char *filename = ic_atomheap + ord(x);
+
   FILE *file = fopen(filename, "r");
   if (!file) {
-    printf("failed to open file: errno = %d\n", errno);
-    printf("error message: %s\n", strerror(errno));
-    g_err_state.type = LOAD_CANNOT_OPEN_FILE;
-    g_err_state.box = x;
-    return err;
+    char find_command[1024];
+    snprintf(find_command, sizeof(find_command), "find . -name '%s'", filename);
+
+    FILE *find_output = popen(find_command, "r");
+    if (!find_output) {
+      printf("error executing find command.\n");
+      g_err_state.type = LOAD_CANNOT_OPEN_FILE;
+      g_err_state.box = x;
+      return err;
+    }
+
+    char found_path[1024];
+    if (fgets(found_path, sizeof(found_path), find_output)) {
+      found_path[strcspn(found_path, "\n")] = 0;
+      filename = found_path;
+      file = fopen(filename, "r");
+    }
+
+    pclose(find_output);
+
+    if (!file) {
+      g_err_state.type = LOAD_CANNOT_OPEN_FILE;
+      g_err_state.box = x;
+      return err;
+    }
   }
 
   parse_ctx *old_ctx = deep_copy_parse_ctx(curr_ctx);
@@ -236,13 +257,12 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   token_buffer_t tb = {0};
   read_ctx_t rc = {
-      .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++ };
+      .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++};
 
   expr_t result = nil;
 
   result = repl(&rc);
 
-  // fclose(curr_ctx->file);
   curr_ctx = old_ctx;
   ctx->nosetjmp = false;
   f_load_layer--;
@@ -471,4 +491,30 @@ static expr_t eval_quasiquote(expr_t x, int level, interpreter_t *ctx) {
 
 expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx) {
   return eval_quasiquote(car(t), 1, ctx);
+}
+
+// (with-exception-handler (+ 1 n) (+ 1 1))
+// top level statements are invalid
+// (with-exception-handler n (+ 1 1)) this fails on ASSOC
+expr_t f_weh(expr_t t, expr_t *e, interpreter_t *ctx) {
+  jmp_buf tjb;
+  memcpy(tjb, jb, sizeof(jmp_buf));
+
+  int jmpres = setjmp(jb);
+  expr_t res = nop;
+  if (jmpres == 1) {
+    if (g_err_state.type) {
+      g_err_state.type = NONE;
+      g_err_state.box = 0;
+      g_err_state.proc = 0;
+    }
+    res = eval(car(cdr(t)), *e);
+  } else if (jmpres == 2) {
+    res = eval(ic_rcso.x, ic_rcso.e);
+  } else {
+    res = eval(car(t), *e);
+  }
+
+  memcpy(jb, tjb, sizeof(jmp_buf));
+  return res;
 }

@@ -46,6 +46,7 @@ typedef struct {
   int buf_end;
   char curr;
   bool once; // parse only one line
+  bool injected;
 } parse_ctx;
 
 parse_ctx *deep_copy_parse_ctx(const parse_ctx *src);

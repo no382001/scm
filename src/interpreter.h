@@ -105,6 +105,10 @@ typedef struct {
   rcso_ctx_t rcso;
 } jumping_around_t;
 
+typedef struct {
+  volatile char name[1024];
+} debug_t;
+
 #define llc_cell ctx->memory.cells
 #define llc_atomheap (char *)llc_cell
 #define llc_hp ctx->memory.hp
@@ -122,6 +126,7 @@ typedef struct {
   constants_t constants;
   jumping_around_t jumps;
   error_state_t error;
+  debug_t debug;
 } low_level_ctx_t;
 
 #define ic_cell ctx->llc.memory.cells
@@ -238,3 +243,5 @@ expr_t f_vector_length(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_unquote(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_env(expr_t t, expr_t *e, interpreter_t *ctx);
+expr_t f_undefine(expr_t t, expr_t *e, interpreter_t *ctx);
+expr_t f_weh(expr_t t, expr_t *e, interpreter_t *ctx);

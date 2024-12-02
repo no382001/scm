@@ -13,6 +13,7 @@ IMPLEMENT:
 - / with 1 arg should do (/ 1 arg)
 
 STANDARD LIBRARY:
+- reload file
 - add an MCE (this maybe requires some primitives that arent implemented yet)
     - typed scheme
 - add an error macro that prints to the screen and returns err
@@ -40,3 +41,5 @@ OPTIMIOZATIONN:
 
 - fix `values`
 - implement variadic lambda
+
+- conversion functions

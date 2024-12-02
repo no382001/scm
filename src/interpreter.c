@@ -82,10 +82,9 @@ expr_t pair(expr_t v, expr_t x, expr_t e, low_level_ctx_t *ctx) {
 expr_t bind(expr_t v, expr_t t, expr_t e, low_level_ctx_t *ctx) {
 #define bind(v, t, e) bind(v, t, e, ctx)
 
-  return T(v) == NIL
-             ? e
-             : T(v) == CONS ? bind(cdr(v), cdr(t), pair(car(v), car(t), e))
-                            : pair(v, t, e);
+  return T(v) == NIL    ? e
+         : T(v) == CONS ? bind(cdr(v), cdr(t), pair(car(v), car(t), e))
+                        : pair(v, t, e);
 }
 
 /* ------------------------- */
@@ -279,6 +278,7 @@ expr_t expand(expr_t f, expr_t t, expr_t e, interpreter_t *ctx) {
 #define expand(f, t, e) expand(f, t, e, ctx)
 
   expr_t bind_r = bind(car(f), t, env);
+
   if (equ(bind_r, err)) {
     g_err_state.type = MACRO_EXPAND_BIND_FAILED;
     g_err_state.box = cdr(f);
@@ -286,6 +286,7 @@ expr_t expand(expr_t f, expr_t t, expr_t e, interpreter_t *ctx) {
   }
 
   expr_t eval1_r = eval(cdr(f), bind_r);
+
   if (equ(eval1_r, err)) {
     g_err_state.type = MACRO_EXPAND_BODY_EVAL_FAILED;
     g_err_state.box = cdr(f);
@@ -293,6 +294,7 @@ expr_t expand(expr_t f, expr_t t, expr_t e, interpreter_t *ctx) {
   }
 
   expr_t eval2_r = eval(eval1_r, e);
+
   if (equ(eval2_r, err)) {
     g_err_state.type = MACRO_EXPAND_EXECUTION_FAILED;
     g_err_state.box = eval1_r;
@@ -454,4 +456,5 @@ prim_procs_t prim[] = {{"eval", f_eval, 1},
                        {"unquote", f_unquote, 0},
                        {"quasiquote", f_quasiquote, 0},
                        {"__get-env", f_env, 0},
+                       {"with-exception-handler", f_weh, 0},
                        {0}};

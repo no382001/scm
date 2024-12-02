@@ -16,7 +16,7 @@ void print(expr_t x, interpreter_t *ctx) {
   else if (T(x) == ATOM)
     printf("%s", ic_atomheap + ord(x));
   else if (T(x) == STRING)
-    printf("'%s'", ic_atomheap + ord(x));
+    printf("%s", ic_atomheap + ord(x));
   else if (T(x) == PRIM)
     printf("<%s>", ic_prim[ord(x)].s);
   else if (T(x) == CONS || T(x) == MACR)

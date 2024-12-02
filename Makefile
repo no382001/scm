@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -std=gnu99 -Wall -Werror -pedantic -O0 -Wno-error=unused-variable -Wno-error=pedantic
+CFLAGS=-g -std=gnu99 -Wall -Werror -pedantic -O0 -Wno-error=unused-variable -Wno-error=pedantic -Wno-error=unused-function
 RM=rm -f
 SRC=src/parser.c src/print.c src/main.c src/primitives.c src/interpreter.c src/builder.c
 

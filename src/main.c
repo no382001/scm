@@ -41,7 +41,7 @@ void init_interpreter(interpreter_t *ctx) {
 bool read_line(read_ctx_t *rctx) {
 
   if (looking_at() == EOF) {
-    if (curr_ctx->file != stdin) {
+    if (curr_ctx->file != stdin || curr_ctx->injected) {
       if (rctx->f_load_layer != -1) {
         return true; // give back control, we are too deep to switch to stdin
       }
