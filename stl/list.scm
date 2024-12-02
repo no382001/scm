@@ -113,3 +113,6 @@
 
 (defun butlast (lst)
   (reverse (nthcdr (reverse lst) 1)))
+
+(defun zip2 (args)
+    (apply map list args))

@@ -1,9 +1,6 @@
-SAFETY:
-- check for memoryleaks?
-
 REFACTOR/FIX:
+- get rid of NaN boxing
 - let and let* args should be in a list like in Scheme
-- load does not care where the file is, it always takes absolute path
 
 TESTS:
 - extend testlist to cover new primitive procedures and errors
@@ -13,21 +10,17 @@ IMPLEMENT:
 - / with 1 arg should do (/ 1 arg)
 
 STANDARD LIBRARY:
-- reload file
 - add an MCE (this maybe requires some primitives that arent implemented yet)
     - typed scheme
-- add an error macro that prints to the screen and returns err
 
 GOOD TO HAVE:
 - foreign function interface
 - add random exit messages like in mit-scheme
 
-NOTES:
-- non-local jumps are used for error handling, right now if something fails in (load filename) the file wont get closed
+- error handling is very messy
 
 TYPES:
 - built in or in an mce?
-- refactor error handling, and atleast tell which file and line the problem arose, idk how messy it will get with macros
 
 (: fib (number_t -> number_t))
 (define (fib n)

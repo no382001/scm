@@ -30,9 +30,9 @@
                 (newline)))))
     (include-impl f)))
 
-(include "stl/common.scm")
-(include "stl/list.scm")
-(include "stl/type.scm")
+(include "common.scm")
+(include "list.scm")
+(include "type.scm")
 
 (defun reload (f)
     (letrec* (reload-impl (lambda (filename)
@@ -43,7 +43,14 @@
                 (display "reloaded ") (display filename) (newline)
                 )
         (include filename))))
-    (begin 
-        (define defun (macro (f v x) `(with-exception-handler (setq ,f (list lambda ,v ,x)) (define ,f (list lambda ,v ,x)))))
+    (begin
+        ; superb alias to reload a function
+        ; it does not handle `define`
+        (setq defun (macro (f v x)
+            `(with-exception-handler
+                (setq ,f (lambda ,v ,x))
+                (define ,f (lambda ,v ,x)))))
         (reload-impl f)
+        ; set it back
+        (setq defun (macro (f v x) (list 'define f (list 'lambda v x))))
     )))

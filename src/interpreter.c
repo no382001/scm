@@ -273,10 +273,47 @@ void gc(interpreter_t *ctx) {
   hp += strlen(ic_atomheap + hp) + 1;
 }
 
+void compact_atom_heap(interpreter_t *ctx) {
+  tag_t new_hp = 0;
+  tag_t i = 0;
+
+  while (i < hp) {
+    size_t len = strlen(ic_atomheap + i);
+
+    if (len > 0) {
+      bool is_referenced = false;
+
+      for (tag_t j = sp; j < N; ++j) {
+        if (T(cell[j]) == ATOM && ord(cell[j]) == i) {
+          is_referenced = true;
+          break;
+        }
+      }
+
+      if (is_referenced) {
+        if (new_hp != i) {
+          memmove(ic_atomheap + new_hp, ic_atomheap + i, len + 1);
+        }
+
+        for (tag_t j = sp; j < N; ++j) {
+          if (T(cell[j]) == ATOM && ord(cell[j]) == i) {
+            cell[j] = box(ATOM, new_hp);
+          }
+        }
+
+        new_hp += len + 1;
+      } else {
+      }
+    }
+    i += len > 0 ? len + 1 : 1;
+  }
+
+  hp = new_hp;
+}
+
 // take this out of here
 expr_t expand(expr_t f, expr_t t, expr_t e, interpreter_t *ctx) {
 #define expand(f, t, e) expand(f, t, e, ctx)
-
   expr_t bind_r = bind(car(f), t, env);
 
   if (equ(bind_r, err)) {

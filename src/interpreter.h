@@ -125,7 +125,7 @@ typedef struct {
   memory_t memory;
   constants_t constants;
   jumping_around_t jumps;
-  error_state_t error;
+  volatile error_state_t error;
   debug_t debug;
 } low_level_ctx_t;
 
@@ -192,6 +192,7 @@ expr_t eval(expr_t x, expr_t e, interpreter_t *ctx);
 expr_t step(expr_t x, expr_t e, interpreter_t *ctx);
 
 void gc(interpreter_t *ctx);
+void compact_atom_heap(interpreter_t *ctx);
 int print_and_reset_error(interpreter_t *ctx);
 
 /* prim procs */

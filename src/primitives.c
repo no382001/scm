@@ -359,8 +359,9 @@ expr_t f_read(expr_t t, expr_t *e, interpreter_t *ctx) {
 }
 
 expr_t f_gc(expr_t x, expr_t *e, interpreter_t *ctx) {
+  compact_atom_heap(ctx);
   gc(ctx);
-  return nop;
+  return nil;
 }
 
 expr_t f_rcrbcs(expr_t x, expr_t *e, interpreter_t *ctx) {
@@ -463,7 +464,8 @@ expr_t f_unquote(expr_t t, expr_t *e, interpreter_t *ctx) {
   return err;
 }
 
-static expr_t eval_quasiquote(expr_t x, int level, interpreter_t *ctx) {
+static expr_t eval_quasiquote(expr_t x, expr_t e, int level,
+                              interpreter_t *ctx) {
   if (T(x) != CONS) {
     return x;
   }
@@ -473,24 +475,24 @@ static expr_t eval_quasiquote(expr_t x, int level, interpreter_t *ctx) {
 
   if (T(head) == CONS && equ(car(head), atom("unquote"))) {
     if (level == 1) {
-      expr_t result = eval(car(cdr(head)), env);
-      return cons(result, eval_quasiquote(tail, level, ctx));
+      expr_t result = eval(car(cdr(head)), e);
+      return cons(result, eval_quasiquote(tail, e, level, ctx));
     } else {
-      return cons(head, eval_quasiquote(tail, level, ctx));
+      return cons(head, eval_quasiquote(tail, e, level, ctx));
     }
   }
 
   if (T(head) == CONS && equ(car(head), atom("quasiquote"))) {
-    return cons(eval_quasiquote(head, level + 1, ctx),
-                eval_quasiquote(tail, level, ctx));
+    return cons(eval_quasiquote(head, e, level + 1, ctx),
+                eval_quasiquote(tail, e, level, ctx));
   }
 
-  return cons(eval_quasiquote(head, level, ctx),
-              eval_quasiquote(tail, level, ctx));
+  return cons(eval_quasiquote(head, e, level, ctx),
+              eval_quasiquote(tail, e, level, ctx));
 }
 
 expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx) {
-  return eval_quasiquote(car(t), 1, ctx);
+  return eval_quasiquote(car(t), *e, 1, ctx);
 }
 
 // (with-exception-handler (+ 1 n) (+ 1 1))
@@ -503,6 +505,7 @@ expr_t f_weh(expr_t t, expr_t *e, interpreter_t *ctx) {
   int jmpres = setjmp(jb);
   expr_t res = nop;
   if (jmpres == 1) {
+    // print_and_reset_error(ctx);
     if (g_err_state.type) {
       g_err_state.type = NONE;
       g_err_state.box = 0;
