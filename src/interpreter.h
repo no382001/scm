@@ -30,7 +30,7 @@ typedef enum {
   APPLY_F_IS_N_CLOS_OR_PRIM,
   TYPE_MISMATCH,
   FUNCTION_DEF_IS_NOT_LAMBDA,
-  LOAD_FILENAME_MUST_BE_QUOTED,
+  LOAD_FILENAME_MUST_BE_A_STRING,
   LOAD_CANNOT_OPEN_FILE,
   LOAD_FAILED_TO_REDIRECT_STDIN,
   DISPLAY_NO_ARG,
@@ -47,7 +47,9 @@ typedef enum {
   VECTOR_FN_NOT_A_VECTOR,
   VECTOR_FN_INDEX_OOB,
   UNQUOTE_OUTSIDE_QUASIQUOTE,
-  EVAL_WRONG_N_OF_ARGS
+  EVAL_WRONG_N_OF_ARGS,
+  READ_TAKES_NO_ARG,
+  READ_EOF
 } error_code_t;
 
 typedef struct {
@@ -156,7 +158,7 @@ struct interpreter_t {
 
 //#include "../util/error_map.h"
 
-expr_t T(expr_t x);
+tag_t T(expr_t x);
 
 /* interpreter things */
 expr_t box(tag_t t, tag_t i);

@@ -30,6 +30,6 @@
                 (newline)))))
     (include-impl f)))
 
-(include 'stl/common.scm)
-(include 'stl/list.scm)
-(include 'stl/type.scm)
+(include "stl/common.scm")
+(include "stl/list.scm")
+(include "stl/type.scm")

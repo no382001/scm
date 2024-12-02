@@ -2,11 +2,8 @@ SAFETY:
 - check for memoryleaks?
 
 REFACTOR/FIX:
-- do something with the non-local jumps, they fuck up loading (is this still relevant? try to remove eval form the inside of load)
 - let and let* args should be in a list like in Scheme
-- refactor define
-    - to implement overwriting (same as the setq impl?) or impl undef and make assoc search from the top of the stack, to emulate some push pop
-- load does not care where the file is, it always takes absolute path to the binary
+- load does not care where the file is, it always takes absolute path
 
 TESTS:
 - extend testlist to cover new primitive procedures and errors
@@ -14,11 +11,8 @@ TESTS:
 IMPLEMENT:
 - arithmetic functions do not do typechecks, ill formed expressions could fall down there
 - / with 1 arg should do (/ 1 arg)
-- strings would be okay to have, even tho only display would profit from it directly
 
 STANDARD LIBRARY:
-- revise the std
-- include macro could be improved
 - add an MCE (this maybe requires some primitives that arent implemented yet)
     - typed scheme
 - add an error macro that prints to the screen and returns err
@@ -27,11 +21,8 @@ GOOD TO HAVE:
 - foreign function interface
 - add random exit messages like in mit-scheme
 
-
 NOTES:
-- there is no point having a separate string type, atom already does most of the job
-- non-local jumps are used for error handling, right now if something fails in (load filename) the file wont get closed 
-
+- non-local jumps are used for error handling, right now if something fails in (load filename) the file wont get closed
 
 TYPES:
 - built in or in an mce?
@@ -47,15 +38,5 @@ TYPES:
 OPTIMIOZATIONN:
 - maybe if i use -O2 recursive calls will be replaced by jumps!
 
-
-- string type!
-- prim procc too
-
-- i should have the same env in the tests too
-- f_load and f_read dont really work now
-
-- loadfile cant really handle things on multiple lines, ergo repl cant 
-
-- get rid of t_DOT
 - fix `values`
 - implement variadic lambda

@@ -141,7 +141,7 @@ prim_t scan() {
     }
     res.t = TAG_COMMENT;
     return res;
-  case '"':
+  case '"': {
     int i = 0;
     char buff[256] = {0};
     char c = advance();
@@ -157,6 +157,7 @@ prim_t scan() {
     strcpy(res.str, buff);
     return res;
     break;
+  }
   case '#':
     advance();
     if (looking_at() == '(') {

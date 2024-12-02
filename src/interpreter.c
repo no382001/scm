@@ -82,9 +82,10 @@ expr_t pair(expr_t v, expr_t x, expr_t e, low_level_ctx_t *ctx) {
 expr_t bind(expr_t v, expr_t t, expr_t e, low_level_ctx_t *ctx) {
 #define bind(v, t, e) bind(v, t, e, ctx)
 
-  return T(v) == NIL    ? e
-         : T(v) == CONS ? bind(cdr(v), cdr(t), pair(car(v), car(t), e))
-                        : pair(v, t, e);
+  return T(v) == NIL
+             ? e
+             : T(v) == CONS ? bind(cdr(v), cdr(t), pair(car(v), car(t), e))
+                            : pair(v, t, e);
 }
 
 /* ------------------------- */

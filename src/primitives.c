@@ -210,8 +210,8 @@ expr_t repl(read_ctx_t *rc);
 int f_load_layer = -1;
 expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
   expr_t x = eval(car(t), *e);
-  if (equ(x, err)) {
-    g_err_state.type = LOAD_FILENAME_MUST_BE_QUOTED;
+  if (T(x) != STRING) {
+    g_err_state.type = LOAD_FILENAME_MUST_BE_A_STRING;
     g_err_state.box = t;
     return err;
   }
@@ -236,7 +236,7 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   token_buffer_t tb = {0};
   read_ctx_t rc = {
-      .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++};
+      .ic = ctx, .tb = &tb, .read = read_line, .f_load_layer = f_load_layer++ };
 
   expr_t result = nil;
 
@@ -322,15 +322,20 @@ expr_t f_trace(expr_t x, expr_t *e, interpreter_t *ctx) {
 }
 
 expr_t f_read(expr_t t, expr_t *e, interpreter_t *ctx) {
-  /*
-  expr_t x;
-  char c = curr_ctx->see;
-  curr_ctx->see = ' ';
+  if (!_not(t)) {
+    g_err_state.type = READ_TAKES_NO_ARG;
+    g_err_state.box = t;
+    return err;
+  }
 
-  x = Read();
-  curr_ctx->see = c;
-  */
-  return nil;
+  int c = getchar();
+  if (c == EOF) {
+    g_err_state.type = READ_EOF;
+    return err;
+  }
+
+  char b[2] = {c, '\0'};
+  return atom(b);
 }
 
 expr_t f_gc(expr_t x, expr_t *e, interpreter_t *ctx) {

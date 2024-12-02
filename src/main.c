@@ -10,7 +10,7 @@ const tag_t ATOM = 0x7ff7, PRIM = 0x7ff8, CONS = 0x7ff9, CLOS = 0x7ffa,
 
 prim_t token_buffer[TOKEN_BUFFER_SIZE] = {0};
 
-expr_t T(expr_t x) { return *(unsigned long long *)&x >> 48; }
+tag_t T(expr_t x) { return *(unsigned long long *)&x >> 48; }
 
 extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
