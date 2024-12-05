@@ -15,7 +15,7 @@
 typedef unsigned tag_t;
 typedef double expr_t;
 
-extern const tag_t ATOM, PRIM, CONS, CLOS, NIL, MACR, NOP, VECTOR, STRING;
+extern const tag_t ATOM, PRIM, FORE, CONS, CLOS, NIL, MACR, NOP, VECTOR, STRING;
 
 typedef enum {
   NONE = 0,
@@ -82,17 +82,21 @@ typedef struct {
 
 typedef struct interpreter_t interpreter_t;
 
+typedef expr_t (*func_ptr_t)(expr_t, expr_t *, interpreter_t *);
+
 typedef struct {
   const char *s;
-  expr_t (*f)(expr_t, expr_t *, interpreter_t *);
+  func_ptr_t f;
   short t;
-} prim_procs_t;
+} proc_t;
 
 #define ctx_env ctx->internals.env
-
+#define MAX_FF_COUNT 64
 typedef struct {
   expr_t env;
-  prim_procs_t *prims;
+  proc_t *prims;
+  proc_t foreign[MAX_FF_COUNT];
+  int f_size;
 } internal_t;
 
 typedef struct {
@@ -152,6 +156,8 @@ typedef struct {
 
 #define ic_rcso ic_jumps.rcso
 #define ic_prim ctx->internals.prims
+#define ic_fore ctx->internals.foreign
+#define ic_fore_size ctx->internals.f_size
 
 struct interpreter_t {
   low_level_ctx_t llc;

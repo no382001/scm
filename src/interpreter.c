@@ -363,8 +363,12 @@ expr_t step(expr_t x, expr_t e, interpreter_t *ctx) {
     /* it can fail, like in the case of cons?? or equ() is just for numbers? */
 
     x = cdr(x); /* get proc body */
-    if (T(f) == PRIM) {
-      x = ic_prim[ord(f)].f(x, &e, ctx); /* exec prim func */
+    if (T(f) == PRIM || T(f) == FORE) {
+      if (T(f) == PRIM){
+        x = ic_prim[ord(f)].f(x, &e, ctx); /* exec prim func */
+      } else if (T(f) == FORE){
+        x = ic_fore[ord(f)].f(x, &e, ctx); /* exec foreign func */
+      }
 
       if (g_err_state.type) {
         if (!g_err_state.proc) {
@@ -448,7 +452,7 @@ int print_and_reset_error(interpreter_t *ctx) {
   return 0;
 }
 
-prim_procs_t prim[] = {{"eval", f_eval, 1},
+proc_t prim[] = {{"eval", f_eval, 1},
                        {"quote", f_quote, 0},
                        {"cons", f_cons, 0},
                        {"car", f_car, 0},

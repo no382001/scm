@@ -14,13 +14,9 @@ STANDARD LIBRARY:
     - typed scheme
 
 GOOD TO HAVE:
-- foreign function interface
 - add random exit messages like in mit-scheme
 
 - error handling is very messy
-
-TYPES:
-- built in or in an mce?
 
 (: fib (number_t -> number_t))
 (define (fib n)
@@ -38,9 +34,10 @@ OPTIMIOZATIONN:
 - typeconversion functions
 
 - mod2pi works fine, but sin breaks on large numbers, float32 overflow?
-- im not sure if repl ever exists on an open file
+- im not sure if repl ever exits on an open file
 
 (__time (factorial 150))
 10098>1.128371
 
-i think its fast enough to do real time audio
+- i think its fast enough to do real time audio
+- make it into a library

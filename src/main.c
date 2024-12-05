@@ -4,7 +4,7 @@
 #include "parser.h"
 #include "print.h"
 
-const tag_t ATOM = 0x7ff7, PRIM = 0x7ff8, CONS = 0x7ff9, CLOS = 0x7ffa,
+const tag_t ATOM = 0x7ff7, PRIM = 0x7ff8, FORE = 0x7ff6, CONS = 0x7ff9, CLOS = 0x7ffa,
             NIL = 0x7ffb, MACR = 0x7ffc, NOP = 0x7ffd, VECTOR = 0x7ffe,
             STRING = 0x7fff;
 
@@ -16,7 +16,7 @@ extern parse_ctx *curr_ctx;
 extern parse_ctx default_ctx;
 extern int paren_count;
 
-extern prim_procs_t prim[];
+extern proc_t prim[];
 
 void init_interpreter(interpreter_t *ctx) {
 
@@ -134,6 +134,21 @@ expr_t repl(read_ctx_t *rc) {
   return result;
 }
 
+bool reg_foreign_func(interpreter_t* ctx, const char* name, func_ptr_t f){
+  if (ic_fore_size >= MAX_FF_COUNT){
+    return false;
+  }
+  proc_t* new_proc = &ic_fore[ic_fore_size];
+  new_proc->f = f;
+  new_proc->s = name;
+  ic_env = pair(atom(name, ic2llcref),box(FORE, ic_fore_size++), ic_env, ic2llcref);
+  return true;
+}
+
+expr_t ff_test(expr_t t, expr_t *e, interpreter_t *ctx) {
+  return num(1);
+}
+
 #ifndef UNITY_TEST
 extern int token_idx;
 
@@ -156,6 +171,8 @@ int main(int argc, char **argv) {
 
   interpreter_t intrp = {0};
   init_interpreter(&intrp);
+
+  reg_foreign_func(&intrp,"test",ff_test);
 
   advance();
 
