@@ -494,4 +494,5 @@ prim_procs_t prim[] = {{"eval", f_eval, 1},
                        {"quasiquote", f_quasiquote, 0},
                        {"__get-env", f_env, 0},
                        {"with-exception-handler", f_weh, 0},
+                       {"__time", f_time, 0},
                        {0}};

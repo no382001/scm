@@ -49,7 +49,8 @@ typedef enum {
   UNQUOTE_OUTSIDE_QUASIQUOTE,
   EVAL_WRONG_N_OF_ARGS,
   READ_TAKES_NO_ARG,
-  READ_EOF
+  READ_EOF,
+  TIME_NO_ARG
 } error_code_t;
 
 typedef struct {
@@ -246,3 +247,4 @@ expr_t f_quasiquote(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_env(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_undefine(expr_t t, expr_t *e, interpreter_t *ctx);
 expr_t f_weh(expr_t t, expr_t *e, interpreter_t *ctx);
+expr_t f_time(expr_t t, expr_t *e, interpreter_t *ctx);

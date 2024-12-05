@@ -261,7 +261,7 @@ expr_t f_load(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   expr_t result = nil;
 
-  result = repl(&rc);
+  result = repl(&rc); // does it ever exit?
 
   curr_ctx = old_ctx;
   ctx->nosetjmp = false;
@@ -520,4 +520,26 @@ expr_t f_weh(expr_t t, expr_t *e, interpreter_t *ctx) {
 
   memcpy(jb, tjb, sizeof(jmp_buf));
   return res;
+}
+
+#include <time.h>
+expr_t f_time(expr_t t, expr_t *e, interpreter_t *ctx) {
+    if (_not(t)) {
+        g_err_state.type = TIME_NO_ARG;
+        g_err_state.box = t;
+        return err;
+    }
+
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    expr_t result = eval(car(t), *e);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    long seconds = end.tv_sec - start.tv_sec;
+    long nanoseconds = end.tv_nsec - start.tv_nsec;
+    double elapsed_ms = seconds * 1000.0 + nanoseconds / 1000000.0;
+
+    return num(elapsed_ms);
 }

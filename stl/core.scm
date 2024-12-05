@@ -32,7 +32,7 @@
 
 (include "common.scm")
 (include "list.scm")
-(include "type.scm")
+(include "math.scm")
 
 (defun reload (f)
     (letrec* (reload-impl (lambda (filename)
